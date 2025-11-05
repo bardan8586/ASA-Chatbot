@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ASAHE | ASA-Bot Preview</title>
     <meta name="description" content="ASA-Bot — ASAHE’s virtual assistant for courses, admissions, fees and student support.">
+    <link rel="icon" type="image/png" href="assets/asa-logo.png" sizes="32x32">
+    <link rel="apple-touch-icon" href="assets/asa-logo.png">
+    <meta name="theme-color" content="#002E5D">
     <style>
       :root {
         --asa-navy: #002E5D;
@@ -25,6 +28,16 @@
         background: var(--asa-navy);
         color: #fff;
         padding: 24px 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand img {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
       }
       .container {
         max-width: 960px;
@@ -85,8 +98,13 @@
   <body>
     <header>
       <div class="container">
-        <h1 class="title">ASAHE — ASA‑Bot Preview</h1>
-        <p class="subtitle">Try the embedded assistant and review quick links below.</p>
+        <div class="brand">
+          <img src="assets/asa-logo.png" alt="ASA Institute of Higher Education logo">
+          <div>
+            <h1 class="title">ASAHE — ASA‑Bot Preview</h1>
+            <p class="subtitle">Try the embedded assistant and review quick links below.</p>
+          </div>
+        </div>
       </div>
     </header>
 
