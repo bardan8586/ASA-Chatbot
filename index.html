@@ -59,6 +59,14 @@
         padding: 20px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.06);
       }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      @media (min-width: 900px) {
+        .grid { grid-template-columns: 1.2fr 1fr; }
+      }
       .chips {
         display: flex;
         flex-wrap: wrap;
@@ -84,6 +92,42 @@
         text-decoration: none;
         margin-top: 16px;
       }
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 10px;
+      }
+      .btn {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 10px;
+        padding: 12px 14px;
+        cursor: pointer;
+        text-align: center;
+        transition: all .15s ease;
+      }
+      .btn:hover { border-color: var(--asa-navy); color: var(--asa-navy); }
+      .btn.primary { background: var(--asa-teal); color: #fff; border-color: var(--asa-teal); }
+
+      /* Modal */
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+        display: none; align-items: center; justify-content: center; padding: 16px;
+      }
+      .modal {
+        background: #fff; border-radius: 12px; width: 100%; max-width: 560px; padding: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      }
+      .modal h3 { margin: 6px 0 8px 0; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .row.single { grid-template-columns: 1fr; }
+      label { font-size: 14px; margin-top: 8px; display: block; }
+      input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #E5E7EB; border-radius: 8px; }
+      .help { color: #6B7280; font-size: 12px; }
+      .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+      .hidden { display: none !important; }
+      .toast { position: fixed; right: 16px; bottom: 16px; background: #1E2B3A; color: #fff; padding: 10px 12px; border-radius: 8px; opacity: 0; transform: translateY(6px); transition: all .2s ease; }
+      .toast.show { opacity: 1; transform: translateY(0); }
       footer {
         margin-top: 40px;
         padding: 24px 16px;
@@ -109,19 +153,95 @@
     </header>
 
     <main class="container">
-      <div class="card">
-        <p><strong>Tip:</strong> Use the chat bubble (bottom-right) to open ASA‑Bot.</p>
-        <div class="chips">
-          <a class="chip" href="https://asahe.edu.au/courses/" target="_blank" rel="noopener">Courses</a>
-          <a class="chip" href="https://asahe.edu.au/admissions/" target="_blank" rel="noopener">How to apply</a>
-          <a class="chip" href="https://asahe.edu.au/fees-and-refunds/" target="_blank" rel="noopener">Fees & refunds</a>
-          <a class="chip" href="https://asahe.edu.au/international-students/" target="_blank" rel="noopener">International students</a>
-          <a class="chip" href="https://asahe.edu.au/student-support/" target="_blank" rel="noopener">Student Support</a>
-          <a class="chip" href="https://asahe.edu.au/contact-us/" target="_blank" rel="noopener">Contact</a>
+      <div class="grid">
+        <div class="card">
+          <p><strong>Tip:</strong> Use the chat bubble (bottom-right) to open ASA‑Bot.</p>
+          <div class="chips">
+            <a class="chip" href="https://asahe.edu.au/courses/" target="_blank" rel="noopener">Courses</a>
+            <a class="chip" href="https://asahe.edu.au/admissions/" target="_blank" rel="noopener">How to apply</a>
+            <a class="chip" href="https://asahe.edu.au/fees-and-refunds/" target="_blank" rel="noopener">Fees & refunds</a>
+            <a class="chip" href="https://asahe.edu.au/international-students/" target="_blank" rel="noopener">International students</a>
+            <a class="chip" href="https://asahe.edu.au/student-support/" target="_blank" rel="noopener">Student Support</a>
+            <a class="chip" href="https://asahe.edu.au/contact-us/" target="_blank" rel="noopener">Contact</a>
+          </div>
+          <a class="cta" href="https://asahe.edu.au/" target="_blank" rel="noopener">Visit ASAHE website</a>
         </div>
-        <a class="cta" href="https://asahe.edu.au/" target="_blank" rel="noopener">Visit ASAHE website</a>
+
+        <div class="card">
+          <h3 style="margin-top:0">Quick actions</h3>
+          <div class="actions">
+            <button class="btn" id="btn-open-chat">Open ASA‑Bot</button>
+            <button class="btn" id="btn-voice">Voice (beta)</button>
+            <button class="btn" id="btn-upload">Upload documents</button>
+            <button class="btn primary" id="btn-intake">Start application</button>
+          </div>
+          <p class="help" style="margin-top:10px">No data leaves your browser in this demo; uploads and intake are stored locally until backend is connected.</p>
+        </div>
       </div>
     </main>
+
+    <!-- Intake Modal -->
+    <div class="modal-backdrop hidden" id="modal-intake">
+      <div class="modal">
+        <h3>Start application</h3>
+        <div class="row">
+          <div>
+            <label>First name *</label>
+            <input id="in-first" required>
+          </div>
+          <div>
+            <label>Last name *</label>
+            <input id="in-last" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Email *</label>
+            <input id="in-email" type="email" required>
+          </div>
+          <div>
+            <label>Role *</label>
+            <select id="in-role">
+              <option value="student">Prospective student</option>
+              <option value="agent">Education agent</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Programme *</label>
+            <input id="in-programme" placeholder="e.g., Bachelor of Business">
+          </div>
+          <div>
+            <label>Preferred intake</label>
+            <input id="in-intake" placeholder="e.g., Feb 2026">
+          </div>
+        </div>
+        <div class="row single">
+          <label><input type="checkbox" id="in-consent"> I consent to the use of this information for ASAHE enrolment support.</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" data-close="#modal-intake">Cancel</button>
+          <button class="btn primary" id="submit-intake">Save summary</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-backdrop hidden" id="modal-upload">
+      <div class="modal">
+        <h3>Upload documents (demo)</h3>
+        <p class="help">Accepted now: any files for preview only. Processing will run server‑side later.</p>
+        <input id="upload-input" type="file" multiple>
+        <div id="upload-list" class="help" style="margin-top:8px"></div>
+        <div class="modal-actions">
+          <button class="btn" data-close="#modal-upload">Close</button>
+          <button class="btn primary" id="save-upload">Save manifest</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
 
     <footer>
       <div class="container links">
@@ -148,6 +268,80 @@
         };
         if(document.readyState==="complete"){onLoad()} else { window.addEventListener("load",onLoad) }
       })();
+    </script>
+    <script>
+      // Helpers
+      const $ = (sel)=>document.querySelector(sel);
+      function show(el){ el.classList.remove('hidden'); el.style.display='flex'; }
+      function hide(el){ el.classList.add('hidden'); el.style.display='none'; }
+      function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+
+      // Quick actions
+      $('#btn-open-chat')?.addEventListener('click',()=>{
+        try { window.chatbase('open'); } catch(e) { /* fallback */ }
+      });
+
+      // Voice (beta) using Web Speech API
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      $('#btn-voice')?.addEventListener('click',()=>{
+        if(!SpeechRec){ toast('Voice not supported in this browser.'); return; }
+        const rec = new SpeechRec();
+        rec.lang = 'en-AU'; rec.interimResults = false; rec.maxAlternatives = 1;
+        rec.onresult = (e)=>{
+          const text = e.results[0][0].transcript;
+          toast('Heard: ' + text);
+          try { window.chatbase('open'); } catch(e){}
+          // Store latest voice query locally so user can paste or we can relay later
+          localStorage.setItem('asa.voice.last', text);
+        };
+        rec.onerror = ()=> toast('Voice error.');
+        rec.start();
+      });
+
+      // Intake modal
+      $('#btn-intake')?.addEventListener('click',()=> show($('#modal-intake')));
+      document.querySelectorAll('[data-close]')?.forEach(btn=>btn.addEventListener('click', (e)=>{
+        const sel = e.currentTarget.getAttribute('data-close'); hide($(sel));
+      }));
+      $('#submit-intake')?.addEventListener('click',()=>{
+        const data = {
+          first: $('#in-first').value.trim(),
+          last: $('#in-last').value.trim(),
+          email: $('#in-email').value.trim(),
+          role: $('#in-role').value,
+          programme: $('#in-programme').value.trim(),
+          intake: $('#in-intake').value.trim(),
+          consent: $('#in-consent').checked,
+          createdAt: new Date().toISOString()
+        };
+        if(!data.first || !data.last || !data.email || !data.programme || !data.consent){ toast('Please complete required fields and consent.'); return; }
+        const id = 'intake_' + Math.random().toString(36).slice(2,9);
+        const summary = { id, ...data };
+        const store = JSON.parse(localStorage.getItem('asa.intakes')||'[]'); store.push(summary); localStorage.setItem('asa.intakes', JSON.stringify(store));
+        // Download JSON summary
+        const blob = new Blob([JSON.stringify(summary,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = id + '.json'; a.click(); URL.revokeObjectURL(url);
+        hide($('#modal-intake')); toast('Application saved locally.');
+      });
+
+      // Upload modal
+      let stagedFiles = [];
+      $('#btn-upload')?.addEventListener('click',()=>{ stagedFiles=[]; $('#upload-input').value=''; $('#upload-list').textContent=''; show($('#modal-upload')); });
+      $('#upload-input')?.addEventListener('change',(e)=>{
+        stagedFiles = Array.from(e.target.files||[]);
+        $('#upload-list').textContent = stagedFiles.length ? stagedFiles.map(f=>`• ${f.name} (${Math.round(f.size/1024)} KB)`).join('\n') : '';
+      });
+      $('#save-upload')?.addEventListener('click',()=>{
+        const manifest = {
+          id: 'upload_' + Math.random().toString(36).slice(2,9),
+          files: stagedFiles.map(f=>({ name:f.name, size:f.size })),
+          createdAt: new Date().toISOString()
+        };
+        const store = JSON.parse(localStorage.getItem('asa.uploads')||'[]'); store.push(manifest); localStorage.setItem('asa.uploads', JSON.stringify(store));
+        const blob = new Blob([JSON.stringify(manifest,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = manifest.id + '.json'; a.click(); URL.revokeObjectURL(url);
+        hide($('#modal-upload')); toast('Upload manifest saved locally.');
+      });
     </script>
   </body>
   </html>
