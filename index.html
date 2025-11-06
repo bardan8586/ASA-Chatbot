@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ASAHE | ASA-Bot Preview</title>
-    <meta name="description" content="ASA-Bot — ASAHE’s virtual assistant for courses, admissions, fees and student support.">
+    <meta name="description" content="ASA-Bot ASAHE’s virtual assistant for courses, admissions, fees and student support.">
     <link rel="icon" type="image/png" href="assets/asa-logo.png" sizes="32x32">
     <link rel="apple-touch-icon" href="assets/asa-logo.png">
     <meta name="theme-color" content="#002E5D">
@@ -301,6 +301,9 @@
           <div style="font-size:12px;">• "Start my application"</div>
           <div style="font-size:12px;">• "Tell me about fees"</div>
           <div style="font-size:12px;">• "Open chat"</div>
+          <div style="margin-top:12px;padding:8px;background:#FFF3CD;border-radius:6px;font-size:11px;color:#856404;">
+            💡 <strong>Tip:</strong> When you click the mic, your browser will ask for microphone permission. Please allow it to use voice features.
+          </div>
         </div>
       </div>
       <div class="voice-actions">
@@ -385,7 +388,7 @@
       function renderVoiceHistory() {
         const transcript = $('#voice-transcript');
         if (voiceHistory.length === 0) {
-          transcript.innerHTML = '<div class="voice-msg assistant"><div>Hello! I\'m ASA Voice Assistant. Try saying commands like "What courses do you offer?" or "Start my application".</div></div>';
+          transcript.innerHTML = '<div class="voice-msg assistant"><div>Hello! I\'m ASA Voice Assistant. Try saying commands like "What courses do you offer?" or "Start my application".</div><div style="margin-top:12px;padding:8px;background:#FFF3CD;border-radius:6px;font-size:11px;color:#856404;">💡 <strong>Tip:</strong> When you click the mic, your browser will ask for microphone permission. Please allow it to use voice features.</div></div>';
           return;
         }
         transcript.innerHTML = voiceHistory.map(msg => `
@@ -475,6 +478,33 @@
         }
         if (isListening) return;
 
+        // Check if getUserMedia is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          toast('Microphone access not available. Please use HTTPS or localhost.');
+          updateVoiceStatus('Microphone not available', '');
+          return;
+        }
+
+        // Request microphone permission first
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then((stream) => {
+            // Stop the stream immediately - we just needed permission
+            stream.getTracks().forEach(track => track.stop());
+            // Permission granted, proceed with recognition
+            startRecognition();
+          })
+          .catch((err) => {
+            console.error('Microphone permission denied:', err);
+            updateVoiceStatus('Microphone permission required', '');
+            toast('Please allow microphone access and try again. Click the mic icon in your browser address bar.');
+            $('#mic-btn').classList.remove('listening', 'processing');
+            $('#mic-btn').textContent = '🎤';
+            isListening = false;
+            shouldAutoRestart = false;
+          });
+      }
+
+      function startRecognition() {
         isListening = true;
         voiceRecognition = new SpeechRec();
         voiceRecognition.lang = 'en-AU';
@@ -537,11 +567,21 @@
 
         voiceRecognition.onerror = (e) => {
           console.error('Voice recognition error:', e.error);
-          if (e.error === 'no-speech') {
-            updateVoiceStatus('No speech detected. Try again.');
-          } else {
-            updateVoiceStatus('Error occurred. Click mic to retry.');
+          let errorMsg = 'Error occurred. Click mic to retry.';
+          
+          if (e.error === 'not-allowed') {
+            errorMsg = 'Microphone permission denied. Please allow access in browser settings.';
+            toast('Please allow microphone access. Check your browser settings.');
+          } else if (e.error === 'no-speech') {
+            errorMsg = 'No speech detected. Try again.';
+          } else if (e.error === 'network') {
+            errorMsg = 'Network error. Check your connection.';
+          } else if (e.error === 'aborted') {
+            errorMsg = 'Recognition aborted.';
+            return; // Don't show error for manual stop
           }
+          
+          updateVoiceStatus(errorMsg);
           stopListening();
         };
 
@@ -561,6 +601,7 @@
           console.error('Failed to start recognition:', e);
           isListening = false;
           shouldAutoRestart = false;
+          updateVoiceStatus('Failed to start. Please try again.');
         }
       }
 
