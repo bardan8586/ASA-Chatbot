@@ -126,8 +126,47 @@
       .help { color: #6B7280; font-size: 12px; }
       .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
       .hidden { display: none !important; }
-      .toast { position: fixed; right: 16px; bottom: 16px; background: #1E2B3A; color: #fff; padding: 10px 12px; border-radius: 8px; opacity: 0; transform: translateY(6px); transition: all .2s ease; }
+      .toast { position: fixed; right: 16px; bottom: 16px; background: #1E2B3A; color: #fff; padding: 10px 12px; border-radius: 8px; opacity: 0; transform: translateY(6px); transition: all .2s ease; z-index: 9999; }
       .toast.show { opacity: 1; transform: translateY(0); }
+      
+      /* Voice Assistant */
+      .voice-panel {
+        position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 500px; z-index: 9000;
+        background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        padding: 20px; display: none;
+      }
+      .voice-panel.active { display: block; }
+      .voice-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+      .voice-header h4 { margin: 0; color: var(--asa-navy); }
+      .voice-status { font-size: 12px; color: #6B7280; }
+      .voice-status.listening { color: var(--asa-teal); font-weight: 600; }
+      .mic-container { display: flex; align-items: center; justify-content: center; padding: 24px; }
+      .mic-btn {
+        width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer;
+        background: var(--asa-navy); color: #fff; font-size: 32px; transition: all .3s ease;
+        display: flex; align-items: center; justify-content: center; position: relative;
+      }
+      .mic-btn:hover { transform: scale(1.05); }
+      .mic-btn.listening {
+        background: var(--asa-teal); animation: pulse 1.5s infinite;
+      }
+      .mic-btn.processing {
+        background: var(--asa-gold);
+      }
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 126, 127, 0.7); }
+        50% { box-shadow: 0 0 0 20px rgba(0, 126, 127, 0); }
+      }
+      .voice-transcript {
+        max-height: 200px; overflow-y: auto; margin-top: 16px; padding: 12px;
+        background: var(--asa-bg); border-radius: 8px; font-size: 14px;
+      }
+      .voice-msg { margin: 8px 0; padding: 8px; border-radius: 6px; }
+      .voice-msg.user { background: #E0F2FE; text-align: right; }
+      .voice-msg.assistant { background: #F0FDF4; }
+      .voice-msg .time { font-size: 10px; color: #9CA3AF; margin-top: 4px; }
+      .voice-actions { display: flex; gap: 8px; margin-top: 12px; }
+      .voice-actions button { flex: 1; padding: 8px; font-size: 12px; }
       footer {
         margin-top: 40px;
         padding: 24px 16px;
@@ -171,7 +210,7 @@
           <h3 style="margin-top:0">Quick actions</h3>
           <div class="actions">
             <button class="btn" id="btn-open-chat">Open ASA‑Bot</button>
-            <button class="btn" id="btn-voice">Voice (beta)</button>
+            <button class="btn" id="btn-voice">Voice Assistant</button>
             <button class="btn" id="btn-upload">Upload documents</button>
             <button class="btn primary" id="btn-intake">Start application</button>
           </div>
@@ -243,6 +282,33 @@
 
     <div class="toast" id="toast"></div>
 
+    <!-- Voice Assistant Panel -->
+    <div class="voice-panel" id="voice-panel">
+      <div class="voice-header">
+        <h4>🎤 ASA Voice Assistant</h4>
+        <span class="voice-status" id="voice-status">Ready</span>
+        <button class="btn" style="padding:4px 8px;font-size:12px;" onclick="hideVoicePanel()">✕</button>
+      </div>
+      <div class="mic-container">
+        <button class="mic-btn" id="mic-btn" title="Click to start listening">
+          🎤
+        </button>
+      </div>
+      <div class="voice-transcript" id="voice-transcript">
+        <div class="voice-msg assistant">
+          <div>Hello! I'm ASA Voice Assistant. Try saying:</div>
+          <div style="margin-top:8px;font-size:12px;">• "What courses do you offer?"</div>
+          <div style="font-size:12px;">• "Start my application"</div>
+          <div style="font-size:12px;">• "Tell me about fees"</div>
+          <div style="font-size:12px;">• "Open chat"</div>
+        </div>
+      </div>
+      <div class="voice-actions">
+        <button class="btn" onclick="clearVoiceHistory()">Clear</button>
+        <button class="btn" onclick="openChatFromVoice()">Open Chat</button>
+      </div>
+    </div>
+
     <footer>
       <div class="container links">
         ASAHE canonical links:
@@ -281,22 +347,261 @@
         try { window.chatbase('open'); } catch(e) { /* fallback */ }
       });
 
-      // Voice (beta) using Web Speech API
+      // ===== ADVANCED VOICE ASSISTANT =====
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      $('#btn-voice')?.addEventListener('click',()=>{
-        if(!SpeechRec){ toast('Voice not supported in this browser.'); return; }
-        const rec = new SpeechRec();
-        rec.lang = 'en-AU'; rec.interimResults = false; rec.maxAlternatives = 1;
-        rec.onresult = (e)=>{
-          const text = e.results[0][0].transcript;
-          toast('Heard: ' + text);
-          try { window.chatbase('open'); } catch(e){}
-          // Store latest voice query locally so user can paste or we can relay later
-          localStorage.setItem('asa.voice.last', text);
+      const SpeechSynthesis = window.speechSynthesis;
+      let voiceRecognition = null;
+      let isListening = false;
+      let shouldAutoRestart = false;
+      let voiceHistory = JSON.parse(localStorage.getItem('asa.voice.history') || '[]');
+
+      function showVoicePanel() {
+        $('#voice-panel').classList.add('active');
+        renderVoiceHistory();
+      }
+
+      function hideVoicePanel() {
+        $('#voice-panel').classList.remove('active');
+        stopListening();
+      }
+
+      function updateVoiceStatus(text, className = '') {
+        const status = $('#voice-status');
+        status.textContent = text;
+        status.className = 'voice-status ' + className;
+      }
+
+      function addVoiceMessage(role, text) {
+        const msg = {
+          role,
+          text,
+          time: new Date().toLocaleTimeString()
         };
-        rec.onerror = ()=> toast('Voice error.');
-        rec.start();
+        voiceHistory.push(msg);
+        localStorage.setItem('asa.voice.history', JSON.stringify(voiceHistory));
+        renderVoiceHistory();
+      }
+
+      function renderVoiceHistory() {
+        const transcript = $('#voice-transcript');
+        if (voiceHistory.length === 0) {
+          transcript.innerHTML = '<div class="voice-msg assistant"><div>Hello! I\'m ASA Voice Assistant. Try saying commands like "What courses do you offer?" or "Start my application".</div></div>';
+          return;
+        }
+        transcript.innerHTML = voiceHistory.map(msg => `
+          <div class="voice-msg ${msg.role}">
+            <div>${msg.text}</div>
+            <div class="time">${msg.time}</div>
+          </div>
+        `).join('');
+        transcript.scrollTop = transcript.scrollHeight;
+      }
+
+      function speakText(text) {
+        if (!SpeechSynthesis) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-AU';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        SpeechSynthesis.speak(utterance);
+      }
+
+      function parseVoiceCommand(text) {
+        const lower = text.toLowerCase();
+        
+        // Commands
+        if (lower.includes('open chat') || lower.includes('open bot')) {
+          return { action: 'openChat', response: 'Opening ASA-Bot chat for you now.' };
+        }
+        if (lower.includes('start application') || lower.includes('apply') || lower.includes('begin application')) {
+          return { action: 'startApplication', response: 'I\'ll help you start your application. Opening the form now.' };
+        }
+        if (lower.includes('upload') || lower.includes('document')) {
+          return { action: 'upload', response: 'I can help you upload documents. Opening the upload panel.' };
+        }
+        if (lower.includes('course') || lower.includes('program')) {
+          return { action: 'courses', response: 'ASAHE offers various courses. You can find details at asahe.edu.au/courses. Would you like me to open that page?' };
+        }
+        if (lower.includes('fee') || lower.includes('cost') || lower.includes('price')) {
+          return { action: 'fees', response: 'For information about fees and refunds, visit asahe.edu.au/fees-and-refunds. Would you like me to open that?' };
+        }
+        if (lower.includes('international') || lower.includes('visa') || lower.includes('overseas')) {
+          return { action: 'international', response: 'For international student information, check asahe.edu.au/international-students. I can open that for you.' };
+        }
+        if (lower.includes('support') || lower.includes('help') || lower.includes('contact')) {
+          return { action: 'support', response: 'For student support, visit asahe.edu.au/student-support or contact us at asahe.edu.au/contact-us.' };
+        }
+        if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+          return { action: 'greeting', response: 'Hello! I\'m ASA Voice Assistant. I can help with courses, applications, fees, and more. What would you like to know?' };
+        }
+        
+        // Default response
+        return { 
+          action: 'general', 
+          response: `I heard: "${text}". For detailed help, try asking about courses, applications, or fees. You can also open the chat for more assistance.` 
+        };
+      }
+
+      function executeVoiceCommand(cmd) {
+        switch(cmd.action) {
+          case 'openChat':
+            try { window.chatbase('open'); } catch(e){}
+            break;
+          case 'startApplication':
+            show($('#modal-intake'));
+            break;
+          case 'upload':
+            show($('#modal-upload'));
+            break;
+          case 'courses':
+            window.open('https://asahe.edu.au/courses/', '_blank');
+            break;
+          case 'fees':
+            window.open('https://asahe.edu.au/fees-and-refunds/', '_blank');
+            break;
+          case 'international':
+            window.open('https://asahe.edu.au/international-students/', '_blank');
+            break;
+          case 'support':
+            window.open('https://asahe.edu.au/student-support/', '_blank');
+            break;
+        }
+      }
+
+      function startListening() {
+        if (!SpeechRec) {
+          toast('Voice recognition not supported in this browser. Try Chrome or Edge.');
+          return;
+        }
+        if (isListening) return;
+
+        isListening = true;
+        voiceRecognition = new SpeechRec();
+        voiceRecognition.lang = 'en-AU';
+        voiceRecognition.continuous = true;
+        voiceRecognition.interimResults = true;
+
+        voiceRecognition.onstart = () => {
+          updateVoiceStatus('Listening...', 'listening');
+          $('#mic-btn').classList.add('listening');
+          $('#mic-btn').textContent = '🔴';
+        };
+
+        voiceRecognition.onresult = (e) => {
+          let interim = '';
+          let final = '';
+          
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const transcript = e.results[i][0].transcript;
+            if (e.results[i].isFinal) {
+              final += transcript + ' ';
+            } else {
+              interim += transcript;
+            }
+          }
+
+          if (final.trim()) {
+            shouldAutoRestart = false; // Temporarily disable auto-restart during processing
+            if (voiceRecognition) {
+              voiceRecognition.stop();
+            }
+            isListening = false;
+            const text = final.trim();
+            addVoiceMessage('user', text);
+            
+            $('#mic-btn').classList.remove('listening');
+            $('#mic-btn').classList.add('processing');
+            $('#mic-btn').textContent = '⚙️';
+            updateVoiceStatus('Processing...', 'processing');
+
+            setTimeout(() => {
+              const cmd = parseVoiceCommand(text);
+              addVoiceMessage('assistant', cmd.response);
+              executeVoiceCommand(cmd);
+              speakText(cmd.response);
+              
+              $('#mic-btn').classList.remove('processing');
+              $('#mic-btn').textContent = '🎤';
+              updateVoiceStatus('Ready');
+              
+              // Auto-restart listening after response if panel is still open
+              if ($('#voice-panel').classList.contains('active')) {
+                setTimeout(() => {
+                  shouldAutoRestart = true;
+                  startListening();
+                }, 1500);
+              }
+            }, 500);
+          }
+        };
+
+        voiceRecognition.onerror = (e) => {
+          console.error('Voice recognition error:', e.error);
+          if (e.error === 'no-speech') {
+            updateVoiceStatus('No speech detected. Try again.');
+          } else {
+            updateVoiceStatus('Error occurred. Click mic to retry.');
+          }
+          stopListening();
+        };
+
+        voiceRecognition.onend = () => {
+          if (shouldAutoRestart && $('#voice-panel').classList.contains('active')) {
+            // Auto-restart if still in listening mode
+            setTimeout(() => {
+              if (shouldAutoRestart) startListening();
+            }, 100);
+          }
+        };
+
+        try {
+          shouldAutoRestart = true;
+          voiceRecognition.start();
+        } catch(e) {
+          console.error('Failed to start recognition:', e);
+          isListening = false;
+          shouldAutoRestart = false;
+        }
+      }
+
+      function stopListening() {
+        isListening = false;
+        shouldAutoRestart = false;
+        if (voiceRecognition) {
+          voiceRecognition.stop();
+          voiceRecognition = null;
+        }
+        $('#mic-btn').classList.remove('listening', 'processing');
+        $('#mic-btn').textContent = '🎤';
+        updateVoiceStatus('Ready');
+      }
+
+      function clearVoiceHistory() {
+        voiceHistory = [];
+        localStorage.removeItem('asa.voice.history');
+        renderVoiceHistory();
+      }
+
+      function openChatFromVoice() {
+        try { window.chatbase('open'); } catch(e){}
+      }
+
+      // Voice button handler
+      $('#btn-voice')?.addEventListener('click', () => {
+        showVoicePanel();
+        setTimeout(() => startListening(), 300);
       });
+
+      $('#mic-btn')?.addEventListener('click', () => {
+        if (isListening) {
+          stopListening();
+        } else {
+          startListening();
+        }
+      });
+
+      // Initialize voice history on load
+      renderVoiceHistory();
 
       // Intake modal
       $('#btn-intake')?.addEventListener('click',()=> show($('#modal-intake')));
