@@ -286,7 +286,10 @@
     <div class="voice-panel" id="voice-panel">
       <div class="voice-header">
         <h4>🎤 ASA Voice Assistant</h4>
-        <span class="voice-status" id="voice-status">Ready</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="voice-status" id="voice-status">Ready</span>
+          <span id="storage-info" style="font-size:10px;color:#9CA3AF;">0 messages stored</span>
+        </div>
         <button class="btn" style="padding:4px 8px;font-size:12px;" onclick="hideVoicePanel()">✕</button>
       </div>
       <div class="mic-container">
@@ -385,13 +388,96 @@
           text,
           time: new Date().toLocaleTimeString(),
           timestamp: new Date().toISOString(),
+          id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
           ...metadata
         };
         voiceHistory.push(msg);
         localStorage.setItem('asa.voice.history', JSON.stringify(voiceHistory));
         console.log('💾 Saved to localStorage:', msg);
         console.log('📊 Total messages stored:', voiceHistory.length);
+        console.log('💿 Full localStorage data:', JSON.parse(localStorage.getItem('asa.voice.history') || '[]'));
         renderVoiceHistory();
+        updateStorageCount();
+      }
+
+      function updateStorageCount() {
+        const count = voiceHistory.length;
+        const storageInfo = $('#storage-info');
+        const storageNum = $('#storage-num');
+        
+        if (storageInfo) {
+          storageInfo.textContent = `${count} message${count !== 1 ? 's' : ''} stored`;
+        }
+        if (storageNum) {
+          storageNum.textContent = count;
+        }
+        
+        // Also log to console
+        const stored = localStorage.getItem('asa.voice.history');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const sizeKB = (stored.length / 1024).toFixed(2);
+          console.log(`📦 Storage: ${parsed.length} messages, ${sizeKB} KB`);
+          console.log('📋 All stored messages:', parsed);
+        } else {
+          console.log('📦 Storage: Empty');
+        }
+      }
+
+      function viewLocalStorage() {
+        const stored = localStorage.getItem('asa.voice.history');
+        const data = stored ? JSON.parse(stored) : [];
+        
+        if (data.length === 0) {
+          alert('No voice data stored yet. Try using the voice assistant first!');
+          return;
+        }
+        
+        const jsonStr = JSON.stringify(data, null, 2);
+        
+        // Show in console
+        console.log('📋 Full localStorage data:');
+        console.table(data);
+        console.log('📄 JSON:', jsonStr);
+        
+        // Show modal
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+          <div class="modal" style="max-width:700px;max-height:80vh;overflow-y:auto;">
+            <h3>💾 Voice Data Storage</h3>
+            <p class="help">Total messages: <strong>${data.length}</strong> | Size: <strong>${(stored.length / 1024).toFixed(2)} KB</strong></p>
+            <div style="max-height:400px;overflow-y:auto;background:#F7F7F7;padding:12px;border-radius:8px;margin:12px 0;">
+              <pre style="margin:0;font-size:11px;white-space:pre-wrap;word-wrap:break-word;">${jsonStr}</pre>
+            </div>
+            <div class="modal-actions">
+              <button class="btn" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+              <button class="btn primary" id="download-json-btn">Download JSON</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.remove();
+        });
+        
+        // Add download button handler
+        const downloadBtn = modal.querySelector('#download-json-btn');
+        if (downloadBtn) {
+          downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `asa-voice-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast('Downloaded!');
+          });
+        }
+        
+        toast(`Showing ${data.length} stored messages. Check console for table view.`);
       }
 
       function renderVoiceHistory() {
@@ -531,14 +617,26 @@
         voiceRecognition.onresult = (e) => {
           let interim = '';
           let final = '';
+          let confidence = 0;
+          let finalConfidence = 0;
           
           for (let i = e.resultIndex; i < e.results.length; i++) {
-            const transcript = e.results[i][0].transcript;
-            if (e.results[i].isFinal) {
+            const result = e.results[i];
+            const transcript = result[0].transcript;
+            const conf = result[0].confidence || 0;
+            
+            if (result.isFinal) {
               final += transcript + ' ';
+              finalConfidence = conf;
             } else {
               interim += transcript;
+              confidence = conf;
             }
+          }
+
+          // Log interim results for debugging
+          if (interim) {
+            console.log('🎤 Interim:', interim, 'Confidence:', confidence);
           }
 
           if (final.trim()) {
@@ -548,7 +646,15 @@
             }
             isListening = false;
             const text = final.trim();
-            addVoiceMessage('user', text);
+            
+            console.log('✅ Final transcript:', text);
+            console.log('📊 Confidence:', finalConfidence);
+            
+            // Store user message with confidence
+            addVoiceMessage('user', text, { 
+              confidence: finalConfidence,
+              rawTranscript: text
+            });
             
             $('#mic-btn').classList.remove('listening');
             $('#mic-btn').classList.add('processing');
@@ -557,7 +663,15 @@
 
             setTimeout(() => {
               const cmd = parseVoiceCommand(text);
-              addVoiceMessage('assistant', cmd.response, { action: cmd.action, userQuery: text });
+              console.log('🎯 Parsed command:', cmd);
+              
+              // Store assistant response with action metadata
+              addVoiceMessage('assistant', cmd.response, { 
+                action: cmd.action, 
+                userQuery: text,
+                confidence: finalConfidence
+              });
+              
               executeVoiceCommand(cmd);
               speakText(cmd.response);
               
@@ -636,34 +750,6 @@
         toast('Voice history cleared');
       }
 
-      function updateStorageCount() {
-        const count = voiceHistory.length;
-        $('#storage-num').textContent = count;
-      }
-
-      function viewLocalStorage() {
-        const stored = localStorage.getItem('asa.voice.history');
-        const data = stored ? JSON.parse(stored) : [];
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-backdrop';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
-          <div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto;">
-            <h3>💾 LocalStorage Contents</h3>
-            <p class="help">Total messages: ${data.length}</p>
-            <pre style="background:#F7F7F7;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:400px;">${JSON.stringify(data, null, 2)}</pre>
-            <div class="modal-actions">
-              <button class="btn" onclick="this.closest('.modal-backdrop').remove()">Close</button>
-              <button class="btn" onclick="navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(()=>alert('Copied to clipboard!')).catch(()=>alert('Copy failed'));">Copy JSON</button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) modal.remove();
-        });
-      }
 
       function openChatFromVoice() {
         try { window.chatbase('open'); } catch(e){}
@@ -685,6 +771,14 @@
 
       // Initialize voice history on load
       renderVoiceHistory();
+      updateStorageCount();
+      
+      // Log initial storage state
+      console.log('🎤 Voice Assistant initialized');
+      console.log('📦 Current storage:', voiceHistory.length, 'messages');
+      if (voiceHistory.length > 0) {
+        console.log('📋 Stored messages:', voiceHistory);
+      }
 
       // Intake modal
       $('#btn-intake')?.addEventListener('click',()=> show($('#modal-intake')));
