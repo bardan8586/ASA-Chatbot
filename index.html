@@ -309,6 +309,10 @@
       <div class="voice-actions">
         <button class="btn" onclick="clearVoiceHistory()">Clear</button>
         <button class="btn" onclick="openChatFromVoice()">Open Chat</button>
+        <button class="btn" onclick="viewLocalStorage()" style="font-size:11px;">View Storage</button>
+      </div>
+      <div style="font-size:11px;color:#6B7280;margin-top:8px;text-align:center;" id="storage-count">
+        Messages in storage: <strong id="storage-num">0</strong>
       </div>
     </div>
 
@@ -361,6 +365,7 @@
       function showVoicePanel() {
         $('#voice-panel').classList.add('active');
         renderVoiceHistory();
+        updateStorageCount();
       }
 
       function hideVoicePanel() {
@@ -374,14 +379,18 @@
         status.className = 'voice-status ' + className;
       }
 
-      function addVoiceMessage(role, text) {
+      function addVoiceMessage(role, text, metadata = {}) {
         const msg = {
           role,
           text,
-          time: new Date().toLocaleTimeString()
+          time: new Date().toLocaleTimeString(),
+          timestamp: new Date().toISOString(),
+          ...metadata
         };
         voiceHistory.push(msg);
         localStorage.setItem('asa.voice.history', JSON.stringify(voiceHistory));
+        console.log('💾 Saved to localStorage:', msg);
+        console.log('📊 Total messages stored:', voiceHistory.length);
         renderVoiceHistory();
       }
 
@@ -389,15 +398,17 @@
         const transcript = $('#voice-transcript');
         if (voiceHistory.length === 0) {
           transcript.innerHTML = '<div class="voice-msg assistant"><div>Hello! I\'m ASA Voice Assistant. Try saying commands like "What courses do you offer?" or "Start my application".</div><div style="margin-top:12px;padding:8px;background:#FFF3CD;border-radius:6px;font-size:11px;color:#856404;">💡 <strong>Tip:</strong> When you click the mic, your browser will ask for microphone permission. Please allow it to use voice features.</div></div>';
+          updateStorageCount();
           return;
         }
         transcript.innerHTML = voiceHistory.map(msg => `
           <div class="voice-msg ${msg.role}">
             <div>${msg.text}</div>
-            <div class="time">${msg.time}</div>
+            <div class="time">${msg.time}${msg.action ? ' • Action: ' + msg.action : ''}</div>
           </div>
         `).join('');
         transcript.scrollTop = transcript.scrollHeight;
+        updateStorageCount();
       }
 
       function speakText(text) {
@@ -546,7 +557,7 @@
 
             setTimeout(() => {
               const cmd = parseVoiceCommand(text);
-              addVoiceMessage('assistant', cmd.response);
+              addVoiceMessage('assistant', cmd.response, { action: cmd.action, userQuery: text });
               executeVoiceCommand(cmd);
               speakText(cmd.response);
               
@@ -621,6 +632,37 @@
         voiceHistory = [];
         localStorage.removeItem('asa.voice.history');
         renderVoiceHistory();
+        updateStorageCount();
+        toast('Voice history cleared');
+      }
+
+      function updateStorageCount() {
+        const count = voiceHistory.length;
+        $('#storage-num').textContent = count;
+      }
+
+      function viewLocalStorage() {
+        const stored = localStorage.getItem('asa.voice.history');
+        const data = stored ? JSON.parse(stored) : [];
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+          <div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto;">
+            <h3>💾 LocalStorage Contents</h3>
+            <p class="help">Total messages: ${data.length}</p>
+            <pre style="background:#F7F7F7;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:400px;">${JSON.stringify(data, null, 2)}</pre>
+            <div class="modal-actions">
+              <button class="btn" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+              <button class="btn" onclick="navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(()=>alert('Copied to clipboard!')).catch(()=>alert('Copy failed'));">Copy JSON</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.remove();
+        });
       }
 
       function openChatFromVoice() {
