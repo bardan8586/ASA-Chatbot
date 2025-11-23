@@ -1,19 +1,97 @@
-# ASA-Bot (ASAHE) — Quick Start
+# ASA-Bot (ASAHE) — Complete System
 
-This repo contains a minimal ASAHE-branded page with the Chatbase widget embedded to preview ASA‑Bot behaviour.
+This repo contains a complete ASAHE chatbot system with:
+- **Chatbase Integration**: Text-based chat assistant
+- **VAPI Integration**: Voice AI assistant for admissions and phone calls
+- **Admin Panel**: Admission management and approval system
+- **Backend API**: Node.js Express server with webhooks
 
-## Preview locally
+## Quick Start
 
-Open `index.html` directly in your browser (double‑click the file) or serve with any static server.
+### 1. Install Dependencies
 
-## Configure Chatbase
+```bash
+npm install
+```
 
-1. Log in to Chatbase and open the bot with id `bVrB07H2M1k0K0bN59FGy`.
-2. Paste the ASA‑Bot System Prompt (below) into your bot instructions / system message.
-3. Set temperature to 0.15–0.30, max tokens ≈ 300 per reply.
-4. Enable analytics as needed.
+### 2. Configure Environment
 
-## Canonical ASAHE links
+Create a `.env` file (see `.env.example`):
+
+```env
+VAPI_API_KEY=your_vapi_api_key
+VAPI_ASSISTANT_ID=your_assistant_id
+PORT=3000
+ADMIN_EMAIL=admin@asahe.edu.au
+ADMIN_PASSWORD=your_password
+```
+
+### 3. Start the Server
+
+```bash
+npm start
+```
+
+### 4. Access the Application
+
+- **Frontend**: http://localhost:3000 (or open `index.html`)
+- **Admin Panel**: http://localhost:3000/admin.html
+
+## Features
+
+### Chatbase (Text Chat)
+- Embedded chat widget for text-based assistance
+- Bot ID: `bVrB07H2M1k0K0bN59FGy`
+- System prompt: See `SYSTEM_PROMPT.md`
+
+### VAPI (Voice Calls)
+- Voice AI assistant for phone calls
+- Handles admissions, course info, status checks
+- System prompt: See `VAPI_SYSTEM_PROMPT.md`
+- Functions: See `VAPI_FUNCTIONS.md`
+
+### Admin Panel
+- View all admission applications
+- Approve/reject applications
+- Statistics dashboard
+- Access at `/admin.html`
+
+## Setup Guides
+
+- **VAPI Setup**: See `SETUP_GUIDE.md` for detailed VAPI configuration
+- **Chatbase Setup**: See `CHATBASE_EMBED_EXPLAINED.md` for chat widget details
+
+## Project Structure
+
+```
+ASA Chatbot/
+├── server.js                 # Express backend
+├── index.html               # Main frontend
+├── admin.html               # Admin panel
+├── package.json             # Dependencies
+├── data/                    # Local storage (auto-created)
+│   ├── admissions.json      # Admission applications
+│   └── admin.json           # Admin config
+├── VAPI_SYSTEM_PROMPT.md    # VAPI assistant prompt
+├── VAPI_FUNCTIONS.md        # VAPI function definitions
+├── SYSTEM_PROMPT.md         # Chatbase system prompt
+└── SETUP_GUIDE.md           # Complete setup instructions
+```
+
+## API Endpoints
+
+### Public
+- `GET /api/health` - Health check
+- `GET /api/vapi/config` - VAPI configuration
+- `POST /api/vapi/call` - Initiate VAPI call
+- `POST /api/vapi/webhook` - VAPI webhook handler
+
+### Admin
+- `POST /api/admin/login` - Admin login
+- `GET /api/admin/admissions` - Get all admissions
+- `POST /api/admin/admissions/:id/approve` - Approve/reject
+
+## Canonical ASAHE Links
 
 - Home: https://asahe.edu.au/
 - Courses: https://asahe.edu.au/courses/
@@ -25,14 +103,19 @@ Open `index.html` directly in your browser (double‑click the file) or serve wi
 - Admissions: https://asahe.edu.au/admissions/
 - Student Portal: https://asahe.edu.au/student-portal/
 
-## System Prompt (paste into Chatbase)
+## Development
 
-See `SYSTEM_PROMPT.md` for the full text. Keep replies concise (1–3 short sentences), link‑first answers with exactly one canonical ASAHE link, offer a natural next step, and follow escalation/fallback rules.
+- Colours: Navy `#002E5D`, Gold `#D4AF37`, Teal `#007B7F`
+- Backend: Node.js with Express
+- Storage: JSON files (MVP - upgrade to database for production)
+- Webhooks: VAPI calls functions via webhook endpoint
 
-## Dev notes
+## Next Steps
 
-- The embed script in `index.html` is the exact snippet you provided.
-- Colours follow ASA Sydney look: Navy `#002E5D`, Gold `#D4AF37`, Teal `#007B7F`.
-- For file handling, set up your ingestion pipeline (OCR → text → chunk → embeddings → vector DB) in your backend, then connect Chatbase via retrieval or custom API as needed.
+1. Set up VAPI account and configure assistant (see `SETUP_GUIDE.md`)
+2. Configure webhook URL (use ngrok for local testing)
+3. Test voice calls and function execution
+4. Set up admin credentials
+5. Deploy to production server
 
 

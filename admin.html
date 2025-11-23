@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ASAHE Admin - Admissions Management</title>
+    <link rel="icon" type="image/png" href="assets/asa-logo.png">
+    <style>
+      :root {
+        --asa-navy: #002E5D;
+        --asa-gold: #D4AF37;
+        --asa-teal: #007B7F;
+        --asa-bg: #F7F7F7;
+        --asa-text: #1E2B3A;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--asa-bg);
+        color: var(--asa-text);
+        line-height: 1.6;
+      }
+      header {
+        background: var(--asa-navy);
+        color: #fff;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .login-form {
+        max-width: 400px;
+        margin: 100px auto;
+        background: #fff;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      }
+      .login-form h2 {
+        margin-bottom: 24px;
+        color: var(--asa-navy);
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0 16px 0;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: var(--asa-teal);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover { background: #006B6F; }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .hidden { display: none; }
+      .admin-panel { display: none; }
+      .admin-panel.active { display: block; }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      }
+      .stat-card h3 {
+        font-size: 32px;
+        color: var(--asa-teal);
+        margin-bottom: 8px;
+      }
+      .stat-card p {
+        color: #6B7280;
+        font-size: 14px;
+      }
+      .admissions-list {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      }
+      .admission-item {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: all 0.2s;
+      }
+      .admission-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .admission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+      }
+      .admission-id {
+        font-family: monospace;
+        font-size: 12px;
+        color: #6B7280;
+        background: #F3F4F6;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .status-badge {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-pending { background: #FEF3C7; color: #92400E; }
+      .status-approved { background: #D1FAE5; color: #065F46; }
+      .status-rejected { background: #FEE2E2; color: #991B1B; }
+      .admission-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+        font-size: 14px;
+      }
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+      }
+      .detail-label {
+        color: #6B7280;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .detail-value {
+        color: var(--asa-text);
+        font-weight: 500;
+      }
+      .admission-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .btn-approve {
+        background: #10B981;
+        color: #fff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-reject {
+        background: #EF4444;
+        color: #fff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-approve:hover { background: #059669; }
+      .btn-reject:hover { background: #DC2626; }
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--asa-navy);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .refresh-btn {
+        background: var(--asa-gold);
+        color: var(--asa-text);
+        width: auto;
+        padding: 8px 16px;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>ASAHE Admin Panel - Admissions Management</h1>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Login Form -->
+      <div id="login-form" class="login-form">
+        <h2>Admin Login</h2>
+        <form id="loginForm">
+          <label>Email</label>
+          <input type="email" id="admin-email" required>
+          <label>Password</label>
+          <input type="password" id="admin-password" required>
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <!-- Admin Panel -->
+      <div id="admin-panel" class="admin-panel">
+        <button class="refresh-btn" onclick="loadAdmissions()">🔄 Refresh</button>
+        
+        <div class="stats" id="stats">
+          <!-- Stats will be populated here -->
+        </div>
+
+        <div class="admissions-list">
+          <h2 style="margin-bottom: 20px;">Admission Applications</h2>
+          <div id="admissions-container">
+            <!-- Admissions will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const API_BASE = window.location.origin;
+      let isLoggedIn = false;
+
+      // Login
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('admin-email').value;
+        const password = document.getElementById('admin-password').value;
+
+        try {
+          const response = await fetch(`${API_BASE}/api/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            isLoggedIn = true;
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('admin-panel').classList.add('active');
+            loadAdmissions();
+          } else {
+            showToast('Login failed: ' + data.message);
+          }
+        } catch (error) {
+          showToast('Error: ' + error.message);
+        }
+      });
+
+      // Load admissions
+      async function loadAdmissions() {
+        try {
+          const response = await fetch(`${API_BASE}/api/admin/admissions`);
+          const data = await response.json();
+          
+          if (data.success) {
+            renderStats(data.admissions);
+            renderAdmissions(data.admissions);
+          }
+        } catch (error) {
+          showToast('Error loading admissions: ' + error.message);
+        }
+      }
+
+      // Render statistics
+      function renderStats(admissions) {
+        const stats = {
+          total: admissions.length,
+          pending: admissions.filter(a => a.status === 'pending').length,
+          approved: admissions.filter(a => a.status === 'approved').length,
+          rejected: admissions.filter(a => a.status === 'rejected').length
+        };
+
+        document.getElementById('stats').innerHTML = `
+          <div class="stat-card">
+            <h3>${stats.total}</h3>
+            <p>Total Applications</p>
+          </div>
+          <div class="stat-card">
+            <h3>${stats.pending}</h3>
+            <p>Pending Review</p>
+          </div>
+          <div class="stat-card">
+            <h3>${stats.approved}</h3>
+            <p>Approved</p>
+          </div>
+          <div class="stat-card">
+            <h3>${stats.rejected}</h3>
+            <p>Rejected</p>
+          </div>
+        `;
+      }
+
+      // Render admissions list
+      function renderAdmissions(admissions) {
+        const container = document.getElementById('admissions-container');
+        
+        if (admissions.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:#6B7280;padding:40px;">No admissions found.</p>';
+          return;
+        }
+
+        container.innerHTML = admissions.map(adm => `
+          <div class="admission-item">
+            <div class="admission-header">
+              <span class="admission-id">${adm.id}</span>
+              <span class="status-badge status-${adm.status}">${adm.status.toUpperCase()}</span>
+            </div>
+            <div class="admission-details">
+              <div class="detail-item">
+                <span class="detail-label">Name</span>
+                <span class="detail-value">${adm.firstName} ${adm.lastName}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">${adm.email}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">${adm.phone}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Programme</span>
+                <span class="detail-value">${adm.programme}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Intake</span>
+                <span class="detail-value">${adm.intake}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Country</span>
+                <span class="detail-value">${adm.country || 'N/A'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Education Level</span>
+                <span class="detail-value">${adm.educationLevel || 'N/A'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Created</span>
+                <span class="detail-value">${new Date(adm.createdAt).toLocaleString()}</span>
+              </div>
+            </div>
+            ${adm.notes ? `<p style="margin-top:12px;padding:12px;background:#F3F4F6;border-radius:6px;font-size:13px;"><strong>Notes:</strong> ${adm.notes}</p>` : ''}
+            ${adm.status === 'pending' ? `
+              <div class="admission-actions">
+                <button class="btn-approve" onclick="approveAdmission('${adm.id}')">✓ Approve</button>
+                <button class="btn-reject" onclick="rejectAdmission('${adm.id}')">✗ Reject</button>
+              </div>
+            ` : adm.approvedBy ? `
+              <p style="margin-top:12px;font-size:12px;color:#6B7280;">
+                ${adm.status === 'approved' ? '✓' : '✗'} ${adm.status === 'approved' ? 'Approved' : 'Rejected'} by ${adm.approvedBy} on ${new Date(adm.approvedAt).toLocaleString()}
+              </p>
+            ` : ''}
+          </div>
+        `).join('');
+      }
+
+      // Approve admission
+      async function approveAdmission(id) {
+        if (!confirm('Approve this admission application?')) return;
+        
+        try {
+          const email = document.getElementById('admin-email').value;
+          const response = await fetch(`${API_BASE}/api/admin/admissions/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'approve', adminEmail: email })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            showToast('Admission approved successfully!');
+            loadAdmissions();
+          } else {
+            showToast('Error: ' + data.error);
+          }
+        } catch (error) {
+          showToast('Error: ' + error.message);
+        }
+      }
+
+      // Reject admission
+      async function rejectAdmission(id) {
+        if (!confirm('Reject this admission application?')) return;
+        
+        try {
+          const email = document.getElementById('admin-email').value;
+          const response = await fetch(`${API_BASE}/api/admin/admissions/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reject', adminEmail: email })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            showToast('Admission rejected.');
+            loadAdmissions();
+          } else {
+            showToast('Error: ' + data.error);
+          }
+        } catch (error) {
+          showToast('Error: ' + error.message);
+        }
+      }
+
+      // Toast notification
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+    </script>
+  </body>
+</html>
+
+
