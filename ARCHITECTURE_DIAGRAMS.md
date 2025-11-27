@@ -394,3 +394,4 @@ graph TB
 - **Teal (#007B7F)**: Backend services, data storage
 - **Gold (#D4AF37)**: External services, APIs
 
+

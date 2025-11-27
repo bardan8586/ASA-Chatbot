@@ -28,11 +28,34 @@
         background: var(--asa-navy);
         color: #fff;
         padding: 24px 16px;
+        position: relative;
+      }
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
       .brand {
         display: flex;
         align-items: center;
         gap: 14px;
+      }
+      .admin-link {
+        background: var(--asa-gold);
+        color: var(--asa-text);
+        padding: 10px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .admin-link:hover {
+        background: #C4A02D;
+        transform: translateY(-1px);
       }
       .brand img {
         width: 44px;
@@ -66,6 +89,21 @@
       }
       @media (min-width: 900px) {
         .grid { grid-template-columns: 1.2fr 1fr; }
+      }
+      @media (max-width: 600px) {
+        .header-content {
+          flex-direction: column;
+          gap: 16px;
+          align-items: flex-start;
+        }
+        .admin-link {
+          align-self: flex-end;
+          font-size: 12px;
+          padding: 8px 12px;
+        }
+        .admin-link span:last-child {
+          display: none;
+        }
       }
       .chips {
         display: flex;
@@ -181,12 +219,18 @@
   <body>
     <header>
       <div class="container">
-        <div class="brand">
-          <img src="assets/asa-logo.png" alt="ASA Institute of Higher Education logo">
-          <div>
-            <h1 class="title">ASAHE — ASA‑Bot Preview</h1>
-            <p class="subtitle">Try the embedded assistant and review quick links below.</p>
+        <div class="header-content">
+          <div class="brand">
+            <img src="assets/asa-logo.png" alt="ASA Institute of Higher Education logo">
+            <div>
+              <h1 class="title">ASAHE — ASA‑Bot Preview</h1>
+              <p class="subtitle">Try the embedded assistant and review quick links below.</p>
+            </div>
           </div>
+          <a href="admin.html" class="admin-link" title="Admin Panel">
+            <span>⚙️</span>
+            <span>Admin</span>
+          </a>
         </div>
       </div>
     </header>
@@ -211,9 +255,9 @@
           <div class="actions">
             <button class="btn" id="btn-open-chat">Open ASA‑Bot</button>
             <button class="btn" id="btn-voice">Voice Assistant</button>
-            <button class="btn" id="btn-vapi-call">📞 Call VAPI</button>
             <button class="btn" id="btn-upload">Upload documents</button>
             <button class="btn primary" id="btn-intake">Start application</button>
+            <button class="btn primary" id="btn-call" style="grid-column: span 2;">Call ASA Admissions</button>
           </div>
           <p class="help" style="margin-top:10px">No data leaves your browser in this demo; uploads and intake are stored locally until backend is connected.</p>
         </div>
@@ -222,66 +266,47 @@
 
     <!-- Intake Modal -->
     <div class="modal-backdrop hidden" id="modal-intake">
-      <div class="modal" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
-        <h3>Start Application</h3>
-        <p class="help" style="margin-bottom: 16px;">Fill in the form below to submit your admission application.</p>
+      <div class="modal">
+        <h3>Start application</h3>
         <div class="row">
           <div>
             <label>First name *</label>
-            <input id="in-first" required placeholder="John">
+            <input id="in-first" required>
           </div>
           <div>
             <label>Last name *</label>
-            <input id="in-last" required placeholder="Smith">
+            <input id="in-last" required>
           </div>
         </div>
         <div class="row">
           <div>
             <label>Email *</label>
-            <input id="in-email" type="email" required placeholder="john.smith@example.com">
+            <input id="in-email" type="email" required>
           </div>
           <div>
-            <label>Phone number *</label>
-            <input id="in-phone" type="tel" required placeholder="+61412345678">
+            <label>Role *</label>
+            <select id="in-role">
+              <option value="student">Prospective student</option>
+              <option value="agent">Education agent</option>
+            </select>
           </div>
         </div>
         <div class="row">
           <div>
             <label>Programme *</label>
-            <input id="in-programme" required placeholder="e.g., Bachelor of Business">
+            <input id="in-programme" placeholder="e.g., Bachelor of Business">
           </div>
           <div>
-            <label>Preferred intake *</label>
-            <input id="in-intake" required placeholder="e.g., February 2026">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Country</label>
-            <input id="in-country" placeholder="e.g., Australia">
-          </div>
-          <div>
-            <label>Education level</label>
-            <select id="in-education">
-              <option value="">Select...</option>
-              <option value="Year 12">Year 12</option>
-              <option value="Diploma">Diploma</option>
-              <option value="Bachelor's">Bachelor's Degree</option>
-              <option value="Master's">Master's Degree</option>
-              <option value="Other">Other</option>
-            </select>
+            <label>Preferred intake</label>
+            <input id="in-intake" placeholder="e.g., Feb 2026">
           </div>
         </div>
         <div class="row single">
-          <label>Additional notes (optional)</label>
-          <textarea id="in-notes" rows="3" placeholder="Any additional information or questions..."></textarea>
-        </div>
-        <div class="row single">
-          <label><input type="checkbox" id="in-consent" required> I consent to the use of this information for ASAHE enrolment support. *</label>
+          <label><input type="checkbox" id="in-consent"> I consent to the use of this information for ASAHE enrolment support.</label>
         </div>
         <div class="modal-actions">
           <button class="btn" data-close="#modal-intake">Cancel</button>
-          <button class="btn primary" id="submit-intake">Submit Application</button>
+          <button class="btn primary" id="submit-intake">Save summary</button>
         </div>
       </div>
     </div>
@@ -297,6 +322,35 @@
           <button class="btn" data-close="#modal-upload">Close</button>
           <button class="btn primary" id="save-upload">Save manifest</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Call Modal -->
+    <div class="modal-backdrop hidden" id="modal-call">
+      <div class="modal">
+        <h3>Call ASA Admissions</h3>
+        <p class="help">Enter the caller’s mobile number and we’ll trigger the VAPI voice assistant to dial them immediately.</p>
+        <div class="row">
+          <div>
+            <label>First name *</label>
+            <input id="call-first" required placeholder="Jane">
+          </div>
+          <div>
+            <label>Last name *</label>
+            <input id="call-last" required placeholder="Doe">
+          </div>
+        </div>
+        <label>Email *</label>
+        <input id="call-email" type="email" placeholder="jane@email.com" required>
+        <label>Phone number *</label>
+        <input id="call-phone" type="tel" placeholder="+61 400 000 000" required>
+        <label>Notes for agent (optional)</label>
+        <textarea id="call-notes" rows="3" placeholder="Reason for call, name, intake, etc."></textarea>
+        <div class="modal-actions">
+          <button class="btn" data-close="#modal-call">Cancel</button>
+          <button class="btn primary" id="submit-call">Start call</button>
+        </div>
+        <div class="help" id="call-status" style="margin-top:8px;"></div>
       </div>
     </div>
 
@@ -391,30 +445,14 @@
       $('#btn-open-chat')?.addEventListener('click',()=>{
         try { window.chatbase('open'); } catch(e) { /* fallback */ }
       });
-
-      // VAPI Call functionality
-      $('#btn-vapi-call')?.addEventListener('click', async ()=>{
-        const phoneNumber = prompt('Enter phone number to call (with country code, e.g., +61412345678):');
-        if (!phoneNumber) return;
-        
-        try {
-          toast('Initiating VAPI call...');
-          const response = await fetch('/api/vapi/call', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phoneNumber })
-          });
-          
-          const data = await response.json();
-          if (data.success) {
-            toast('Call initiated! The assistant will call you shortly.');
-          } else {
-            toast('Error: ' + (data.error || 'Failed to initiate call'));
-          }
-        } catch (error) {
-          console.error('VAPI call error:', error);
-          toast('Error initiating call. Make sure the backend is running.');
-        }
+      $('#btn-call')?.addEventListener('click', () => {
+        $('#call-phone').value = '';
+        $('#call-notes').value = '';
+        $('#call-first').value = '';
+        $('#call-last').value = '';
+        $('#call-email').value = '';
+        $('#call-status').textContent = '';
+        show($('#modal-call'));
       });
 
       // ===== ADVANCED VOICE ASSISTANT =====
@@ -884,7 +922,89 @@
         const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = manifest.id + '.json'; a.click(); URL.revokeObjectURL(url);
         hide($('#modal-upload')); toast('Upload manifest saved locally.');
       });
+
+      // Call modal
+      async function initiateVapiCall(payload) {
+        const statusEl = $('#call-status');
+        try {
+          statusEl.textContent = 'Dialing via ASA Voice Assistant...';
+          const response = await fetch('/api/vapi/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json();
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Call could not be initiated');
+          }
+          statusEl.textContent = '✅ Call initiated successfully. Check your phone.';
+          toast('Call started');
+          setTimeout(() => hide($('#modal-call')), 1200);
+        } catch (error) {
+          console.error('VAPI call failed:', error);
+          statusEl.textContent = `❌ ${error.message || 'Failed to start call.'}`;
+          toast('Call failed – see status message.');
+        }
+      }
+
+      $('#submit-call')?.addEventListener('click', async () => {
+        const firstName = $('#call-first').value.trim();
+        const lastName = $('#call-last').value.trim();
+        const email = $('#call-email').value.trim();
+        const phoneNumber = $('#call-phone').value.trim();
+        const notes = $('#call-notes').value.trim();
+        
+        if (!firstName || !lastName || !email || !phoneNumber) {
+          toast('Please complete first name, last name, email, and phone.');
+          return;
+        }
+        await initiateVapiCall({ firstName, lastName, email, phoneNumber, notes });
+      });
     </script>
+
+    <!-- VAPI Voice Widget -->
+    <vapi-widget
+      public-key="6f7604dd-1f18-432a-b884-6f2f808949f1"
+      assistant-id="56e48d6c-029d-459b-aff9-132002e508b6"
+      mode="voice"
+      theme="dark"
+      base-bg-color="#000000"
+      accent-color="#14B8A6"
+      cta-button-color="#000000"
+      cta-button-text-color="#ffffff"
+      border-radius="large"
+      size="full"
+      position="top-right"
+      title="TALK WITH AI"
+      start-button-text="Start"
+      end-button-text="End Call"
+      chat-first-message="Hey, How can I help you today?"
+      chat-placeholder="Type your message..."
+      voice-show-transcript="true"
+      consent-required="true"
+      consent-title="Terms and conditions"
+      consent-content="By clicking &quot;Agree,&quot; and each time I interact with this AI agent, I consent to the recording, storage, and sharing of my communications with third-party service providers, and as otherwise described in our Terms of Service."
+      consent-storage-key="vapi_widget_consent"
+    ></vapi-widget>
+
+    <!-- VAPI Chat Widget -->
+    <vapi-widget
+      public-key="6f7604dd-1f18-432a-b884-6f2f808949f1"
+      assistant-id="56e48d6c-029d-459b-aff9-132002e508b6"
+      mode="chat"
+      theme="light"
+      position="bottom-left"
+      title="Chat with ASA"
+      chat-first-message="Hi! I can help with admissions, fees, or course info."
+      chat-placeholder="Type to chat with ASA Voice Agent"
+      border-radius="medium"
+    ></vapi-widget>
+
+    <script
+      src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js"
+      async
+      type="text/javascript"
+    ></script>
   </body>
   </html>
 

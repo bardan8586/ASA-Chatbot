@@ -1,22 +1,21 @@
 {
   "name": "asa-chatbot-backend",
   "version": "1.0.0",
-  "description": "ASAHE Chatbot backend with VAPI voice integration",
-  "main": "server.js",
+  "description": "ASAHE chatbot backend + static site",
   "type": "module",
+  "license": "ISC",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "nodemon server.js"
   },
-  "keywords": ["vapi", "voice", "assistant", "admissions"],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "body-parser": "^1.20.2"
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
-
 

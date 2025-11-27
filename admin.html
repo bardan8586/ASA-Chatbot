@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ASAHE Admin - Admissions Management</title>
+    <title>ASAHE Admin - Student Application Management</title>
     <link rel="icon" type="image/png" href="assets/asa-logo.png">
     <style>
       :root {
@@ -26,8 +26,15 @@
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
+      .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
       .container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 24px;
       }
@@ -43,31 +50,77 @@
         margin-bottom: 24px;
         color: var(--asa-navy);
       }
-      input {
+      input, select, textarea {
         width: 100%;
         padding: 12px;
         margin: 8px 0 16px 0;
         border: 1px solid #E5E7EB;
         border-radius: 8px;
         font-size: 14px;
+        font-family: inherit;
       }
       button {
-        width: 100%;
-        padding: 12px;
+        padding: 12px 20px;
         background: var(--asa-teal);
         color: #fff;
         border: none;
         border-radius: 8px;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s;
       }
       button:hover { background: #006B6F; }
       button:disabled { opacity: 0.6; cursor: not-allowed; }
-      .hidden { display: none; }
+      .btn-secondary {
+        background: #6B7280;
+      }
+      .btn-secondary:hover { background: #4B5563; }
+      .btn-gold {
+        background: var(--asa-gold);
+        color: var(--asa-text);
+      }
+      .btn-gold:hover { background: #C4A02D; }
+      .hidden { display: none !important; }
       .admin-panel { display: none; }
       .admin-panel.active { display: block; }
+      
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .search-box {
+        flex: 1;
+        min-width: 250px;
+        position: relative;
+      }
+      .search-box input {
+        margin: 0;
+        padding-left: 40px;
+      }
+      .search-box::before {
+        content: "🔍";
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+      }
+      .filter-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .filter-group select {
+        margin: 0;
+        min-width: 150px;
+      }
+      
+      /* Stats */
       .stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -76,62 +129,118 @@
       }
       .stat-card {
         background: #fff;
-        padding: 20px;
+        padding: 24px;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: transform 0.2s;
+      }
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       }
       .stat-card h3 {
-        font-size: 32px;
+        font-size: 36px;
         color: var(--asa-teal);
         margin-bottom: 8px;
+        font-weight: 700;
       }
       .stat-card p {
         color: #6B7280;
         font-size: 14px;
+        margin-bottom: 8px;
       }
+      .stat-card .stat-change {
+        font-size: 12px;
+        color: #10B981;
+      }
+      .stat-card.pending h3 { color: #F59E0B; }
+      .stat-card.approved h3 { color: #10B981; }
+      .stat-card.rejected h3 { color: #EF4444; }
+      
+      /* Admissions List */
       .admissions-list {
         background: #fff;
         border-radius: 12px;
         padding: 24px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       }
+      .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .view-toggle {
+        display: flex;
+        gap: 8px;
+        background: #F3F4F6;
+        padding: 4px;
+        border-radius: 8px;
+      }
+      .view-toggle button {
+        padding: 8px 12px;
+        background: transparent;
+        color: #6B7280;
+        font-size: 12px;
+      }
+      .view-toggle button.active {
+        background: #fff;
+        color: var(--asa-teal);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      /* Admission Item */
       .admission-item {
         border: 1px solid #E5E7EB;
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 16px;
         transition: all 0.2s;
+        background: #fff;
       }
       .admission-item:hover {
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-color: var(--asa-teal);
       }
       .admission-header {
         display: flex;
         justify-content: space-between;
         align-items: start;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
       }
       .admission-id {
         font-family: monospace;
         font-size: 12px;
         color: #6B7280;
         background: #F3F4F6;
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 6px 10px;
+        border-radius: 6px;
       }
       .status-badge {
         padding: 6px 12px;
         border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
+        text-transform: uppercase;
       }
       .status-pending { background: #FEF3C7; color: #92400E; }
       .status-approved { background: #D1FAE5; color: #065F46; }
       .status-rejected { background: #FEE2E2; color: #991B1B; }
+      .source-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        background: #E0F2FE;
+        color: #0369A1;
+      }
       .admission-details {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
         margin: 16px 0;
         font-size: 14px;
       }
@@ -143,15 +252,24 @@
         color: #6B7280;
         font-size: 12px;
         margin-bottom: 4px;
+        font-weight: 500;
       }
       .detail-value {
         color: var(--asa-text);
         font-weight: 500;
       }
+      .detail-value a {
+        color: var(--asa-teal);
+        text-decoration: none;
+      }
+      .detail-value a:hover {
+        text-decoration: underline;
+      }
       .admission-actions {
         display: flex;
         gap: 8px;
         margin-top: 16px;
+        flex-wrap: wrap;
       }
       .btn-approve {
         background: #10B981;
@@ -161,6 +279,7 @@
         border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
+        font-weight: 600;
       }
       .btn-reject {
         background: #EF4444;
@@ -170,40 +289,179 @@
         border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
+        font-weight: 600;
+      }
+      .btn-view {
+        background: var(--asa-teal);
+        color: #fff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .btn-notes {
+        background: var(--asa-gold);
+        color: var(--asa-text);
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
       }
       .btn-approve:hover { background: #059669; }
       .btn-reject:hover { background: #DC2626; }
+      .btn-view:hover { background: #006B6F; }
+      .btn-notes:hover { background: #C4A02D; }
+      
+      /* Modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 10000;
+      }
+      .modal-backdrop.show {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #E5E7EB;
+      }
+      .modal-header h3 {
+        color: var(--asa-navy);
+        font-size: 24px;
+      }
+      .modal-close {
+        background: transparent;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6B7280;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+      }
+      .modal-close:hover {
+        background: #F3F4F6;
+        color: var(--asa-text);
+      }
+      .modal-content {
+        margin-bottom: 20px;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #E5E7EB;
+      }
+      
+      /* Toast */
       .toast {
         position: fixed;
         top: 20px;
         right: 20px;
         background: var(--asa-navy);
         color: #fff;
-        padding: 12px 20px;
+        padding: 16px 24px;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 9999;
         opacity: 0;
         transform: translateY(-20px);
         transition: all 0.3s;
+        max-width: 400px;
       }
       .toast.show {
         opacity: 1;
         transform: translateY(0);
       }
-      .refresh-btn {
-        background: var(--asa-gold);
-        color: var(--asa-text);
-        width: auto;
-        padding: 8px 16px;
+      .toast.success { background: #10B981; }
+      .toast.error { background: #EF4444; }
+      
+      /* Bulk Actions */
+      .bulk-actions {
+        display: none;
+        padding: 12px;
+        background: #F3F4F6;
+        border-radius: 8px;
         margin-bottom: 16px;
+        align-items: center;
+        gap: 12px;
+      }
+      .bulk-actions.show {
+        display: flex;
+      }
+      .checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+      
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6B7280;
+      }
+      .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .toolbar {
+          flex-direction: column;
+        }
+        .search-box {
+          width: 100%;
+        }
+        .filter-group {
+          width: 100%;
+        }
+        .filter-group select {
+          flex: 1;
+        }
       }
     </style>
   </head>
   <body>
     <header>
-      <div class="container">
-        <h1>ASAHE Admin Panel - Admissions Management</h1>
+      <div class="header-content">
+        <h1>ASAHE Admin Panel</h1>
+        <div id="admin-info" class="hidden" style="color: #fff; font-size: 14px;">
+          <span id="admin-email-display"></span>
+          <button onclick="logout()" style="margin-left: 16px; background: rgba(255,255,255,0.2); padding: 6px 12px; font-size: 12px;">Logout</button>
+        </div>
       </div>
     </header>
 
@@ -213,26 +471,98 @@
         <h2>Admin Login</h2>
         <form id="loginForm">
           <label>Email</label>
-          <input type="email" id="admin-email" required>
+          <input type="email" id="admin-email" required placeholder="admin@asahe.edu.au">
           <label>Password</label>
-          <input type="password" id="admin-password" required>
+          <input type="password" id="admin-password" required placeholder="Enter password">
           <button type="submit">Login</button>
         </form>
       </div>
 
       <!-- Admin Panel -->
       <div id="admin-panel" class="admin-panel">
-        <button class="refresh-btn" onclick="loadAdmissions()">🔄 Refresh</button>
-        
-        <div class="stats" id="stats">
-          <!-- Stats will be populated here -->
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search by name, email, phone, or ID..." oninput="filterAdmissions()">
+          </div>
+          <div class="filter-group">
+            <select id="filter-status" onchange="filterAdmissions()">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <select id="filter-source" onchange="filterAdmissions()">
+              <option value="">All Sources</option>
+              <option value="vapi_voice_call">Voice Call</option>
+              <option value="vapi_chat">Chat Widget</option>
+            </select>
+            <select id="filter-programme" onchange="filterAdmissions()">
+              <option value="">All Programmes</option>
+            </select>
+            <select id="sort-by" onchange="filterAdmissions()">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name-asc">Name A-Z</option>
+              <option value="name-desc">Name Z-A</option>
+            </select>
+          </div>
+          <button class="btn-gold" onclick="exportData('csv')">📥 Export CSV</button>
+          <button class="btn-gold" onclick="exportData('json')">📥 Export JSON</button>
+          <button onclick="loadAdmissions()">🔄 Refresh</button>
         </div>
 
+        <!-- Bulk Actions -->
+        <div class="bulk-actions" id="bulk-actions">
+          <span id="bulk-count">0 selected</span>
+          <button class="btn-approve" onclick="bulkApprove()">✓ Approve Selected</button>
+          <button class="btn-reject" onclick="bulkReject()">✗ Reject Selected</button>
+          <button class="btn-secondary" onclick="clearSelection()">Clear</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats" id="stats"></div>
+
+        <!-- Admissions List -->
         <div class="admissions-list">
-          <h2 style="margin-bottom: 20px;">Admission Applications</h2>
-          <div id="admissions-container">
-            <!-- Admissions will be populated here -->
+          <div class="list-header">
+            <h2>Admission Applications <span id="results-count"></span></h2>
+            <div class="view-toggle">
+              <button class="active" onclick="setView('list')">📋 List</button>
+              <button onclick="setView('compact')">📊 Compact</button>
+            </div>
           </div>
+          <div id="admissions-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-backdrop" id="detail-modal" onclick="if(event.target===this) closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Admission Details</h3>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-content" id="modal-content"></div>
+        <div class="modal-actions" id="modal-actions"></div>
+      </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div class="modal-backdrop" id="notes-modal" onclick="if(event.target===this) closeNotesModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Add Notes</h3>
+          <button class="modal-close" onclick="closeNotesModal()">×</button>
+        </div>
+        <div class="modal-content">
+          <label>Notes</label>
+          <textarea id="notes-textarea" rows="6" placeholder="Add internal notes about this application..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeNotesModal()">Cancel</button>
+          <button onclick="saveNotes()">Save Notes</button>
         </div>
       </div>
     </div>
@@ -241,7 +571,11 @@
 
     <script>
       const API_BASE = window.location.origin;
-      let isLoggedIn = false;
+      let allAdmissions = [];
+      let filteredAdmissions = [];
+      let currentView = 'list';
+      let selectedAdmissions = new Set();
+      let currentNotesAdmission = null;
 
       // Login
       document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -256,33 +590,119 @@
             body: JSON.stringify({ email, password })
           });
 
-          const data = await response.json();
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText || response.statusText}`);
+          }
+
+          const text = await response.text();
+          if (!text) {
+            throw new Error('Empty response from server');
+          }
+
+          const data = JSON.parse(text);
           if (data.success) {
-            isLoggedIn = true;
             document.getElementById('login-form').classList.add('hidden');
             document.getElementById('admin-panel').classList.add('active');
+            document.getElementById('admin-info').classList.remove('hidden');
+            document.getElementById('admin-email-display').textContent = email;
             loadAdmissions();
           } else {
-            showToast('Login failed: ' + data.message);
+            showToast('Login failed: ' + (data.message || 'Invalid credentials'), 'error');
           }
         } catch (error) {
-          showToast('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
+          console.error('Login error:', error);
         }
       });
+
+      function logout() {
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('admin-panel').classList.remove('active');
+        document.getElementById('admin-info').classList.add('hidden');
+        document.getElementById('admin-email').value = '';
+        document.getElementById('admin-password').value = '';
+        selectedAdmissions.clear();
+        updateBulkActions();
+      }
 
       // Load admissions
       async function loadAdmissions() {
         try {
           const response = await fetch(`${API_BASE}/api/admin/admissions`);
-          const data = await response.json();
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText || response.statusText}`);
+          }
+
+          const text = await response.text();
+          if (!text) {
+            throw new Error('Empty response from server');
+          }
+
+          const data = JSON.parse(text);
           
           if (data.success) {
-            renderStats(data.admissions);
-            renderAdmissions(data.admissions);
+            allAdmissions = data.admissions || [];
+            populateProgrammeFilter();
+            filterAdmissions();
+          } else {
+            showToast('Failed to load admissions: ' + (data.message || 'Unknown error'), 'error');
           }
         } catch (error) {
-          showToast('Error loading admissions: ' + error.message);
+          showToast('Error loading admissions: ' + error.message, 'error');
+          console.error('Load admissions error:', error);
+          allAdmissions = [];
+          filterAdmissions();
         }
+      }
+
+      function populateProgrammeFilter() {
+        const programmes = [...new Set(allAdmissions.map(a => a.programme).filter(Boolean))];
+        const select = document.getElementById('filter-programme');
+        select.innerHTML = '<option value="">All Programmes</option>' + 
+          programmes.map(p => `<option value="${p}">${p}</option>`).join('');
+      }
+
+      // Filter and sort
+      function filterAdmissions() {
+        const search = document.getElementById('search-input').value.toLowerCase();
+        const statusFilter = document.getElementById('filter-status').value;
+        const sourceFilter = document.getElementById('filter-source').value;
+        const programmeFilter = document.getElementById('filter-programme').value;
+        const sortBy = document.getElementById('sort-by').value;
+
+        filteredAdmissions = allAdmissions.filter(adm => {
+          const matchesSearch = !search || 
+            `${adm.firstName} ${adm.lastName}`.toLowerCase().includes(search) ||
+            adm.email.toLowerCase().includes(search) ||
+            adm.phone.includes(search) ||
+            adm.id.toLowerCase().includes(search);
+          
+          const matchesStatus = !statusFilter || adm.status === statusFilter;
+          const matchesSource = !sourceFilter || adm.source === sourceFilter;
+          const matchesProgramme = !programmeFilter || adm.programme === programmeFilter;
+
+          return matchesSearch && matchesStatus && matchesSource && matchesProgramme;
+        });
+
+        // Sort
+        filteredAdmissions.sort((a, b) => {
+          switch(sortBy) {
+            case 'oldest':
+              return new Date(a.createdAt) - new Date(b.createdAt);
+            case 'name-asc':
+              return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+            case 'name-desc':
+              return `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`);
+            default: // newest
+              return new Date(b.createdAt) - new Date(a.createdAt);
+          }
+        });
+
+        renderStats(allAdmissions);
+        renderAdmissions(filteredAdmissions);
       }
 
       // Render statistics
@@ -291,94 +711,257 @@
           total: admissions.length,
           pending: admissions.filter(a => a.status === 'pending').length,
           approved: admissions.filter(a => a.status === 'approved').length,
-          rejected: admissions.filter(a => a.status === 'rejected').length
+          rejected: admissions.filter(a => a.status === 'rejected').length,
+          voice: admissions.filter(a => a.source === 'vapi_voice_call').length,
+          chat: admissions.filter(a => a.source === 'vapi_chat').length
         };
+
+        const approvalRate = stats.total > 0 ? ((stats.approved / stats.total) * 100).toFixed(1) : 0;
 
         document.getElementById('stats').innerHTML = `
           <div class="stat-card">
             <h3>${stats.total}</h3>
             <p>Total Applications</p>
+            <div class="stat-change">${stats.voice} voice • ${stats.chat} chat</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card pending">
             <h3>${stats.pending}</h3>
             <p>Pending Review</p>
           </div>
-          <div class="stat-card">
+          <div class="stat-card approved">
             <h3>${stats.approved}</h3>
             <p>Approved</p>
+            <div class="stat-change">${approvalRate}% approval rate</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card rejected">
             <h3>${stats.rejected}</h3>
             <p>Rejected</p>
           </div>
         `;
       }
 
-      // Render admissions list
+      // Render admissions
       function renderAdmissions(admissions) {
         const container = document.getElementById('admissions-container');
+        document.getElementById('results-count').textContent = `(${admissions.length})`;
         
         if (admissions.length === 0) {
-          container.innerHTML = '<p style="text-align:center;color:#6B7280;padding:40px;">No admissions found.</p>';
+          container.innerHTML = `
+            <div class="empty-state">
+              <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+              <p>No admissions found matching your filters.</p>
+            </div>
+          `;
           return;
         }
 
-        container.innerHTML = admissions.map(adm => `
-          <div class="admission-item">
-            <div class="admission-header">
-              <span class="admission-id">${adm.id}</span>
-              <span class="status-badge status-${adm.status}">${adm.status.toUpperCase()}</span>
-            </div>
-            <div class="admission-details">
-              <div class="detail-item">
-                <span class="detail-label">Name</span>
-                <span class="detail-value">${adm.firstName} ${adm.lastName}</span>
+        container.innerHTML = admissions.map(adm => {
+          const isSelected = selectedAdmissions.has(adm.id);
+          const sourceLabel = adm.source === 'vapi_voice_call' ? '📞 Voice' : adm.source === 'vapi_chat' ? '💬 Chat' : '🌐 Web';
+          
+          return `
+            <div class="admission-item" data-id="${adm.id}">
+              <div class="admission-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <input type="checkbox" class="checkbox" ${isSelected ? 'checked' : ''} 
+                    onchange="toggleSelection('${adm.id}', this.checked)">
+                  <span class="admission-id">${adm.id}</span>
+                  <span class="source-badge">${sourceLabel}</span>
+                </div>
+                <span class="status-badge status-${adm.status}">${adm.status.toUpperCase()}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Email</span>
-                <span class="detail-value">${adm.email}</span>
+              <div class="admission-details">
+                <div class="detail-item">
+                  <span class="detail-label">Name</span>
+                  <span class="detail-value">${adm.firstName} ${adm.lastName}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Email</span>
+                  <span class="detail-value"><a href="mailto:${adm.email}">${adm.email}</a></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Phone</span>
+                  <span class="detail-value"><a href="tel:${adm.phone}">${adm.phone}</a></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Programme</span>
+                  <span class="detail-value">${adm.programme}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Intake</span>
+                  <span class="detail-value">${adm.intake}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Country</span>
+                  <span class="detail-value">${adm.country || 'N/A'}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Education</span>
+                  <span class="detail-value">${adm.educationLevel || 'N/A'}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Created</span>
+                  <span class="detail-value">${new Date(adm.createdAt).toLocaleString()}</span>
+                </div>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Phone</span>
-                <span class="detail-value">${adm.phone}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Programme</span>
-                <span class="detail-value">${adm.programme}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Intake</span>
-                <span class="detail-value">${adm.intake}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Country</span>
-                <span class="detail-value">${adm.country || 'N/A'}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Education Level</span>
-                <span class="detail-value">${adm.educationLevel || 'N/A'}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Created</span>
-                <span class="detail-value">${new Date(adm.createdAt).toLocaleString()}</span>
-              </div>
-            </div>
-            ${adm.notes ? `<p style="margin-top:12px;padding:12px;background:#F3F4F6;border-radius:6px;font-size:13px;"><strong>Notes:</strong> ${adm.notes}</p>` : ''}
-            ${adm.status === 'pending' ? `
+              ${adm.notes ? `<p style="margin-top:12px;padding:12px;background:#F3F4F6;border-radius:6px;font-size:13px;"><strong>Notes:</strong> ${adm.notes}</p>` : ''}
+              ${adm.approvedBy ? `
+                <p style="margin-top:12px;font-size:12px;color:#6B7280;">
+                  ${adm.status === 'approved' ? '✓' : '✗'} ${adm.status === 'approved' ? 'Approved' : 'Rejected'} by ${adm.approvedBy} on ${new Date(adm.approvedAt).toLocaleString()}
+                </p>
+              ` : ''}
               <div class="admission-actions">
-                <button class="btn-approve" onclick="approveAdmission('${adm.id}')">✓ Approve</button>
-                <button class="btn-reject" onclick="rejectAdmission('${adm.id}')">✗ Reject</button>
+                <button class="btn-view" onclick="viewDetails('${adm.id}')">👁️ View Details</button>
+                <button class="btn-notes" onclick="openNotesModal('${adm.id}')">📝 Notes</button>
+                ${adm.status === 'pending' ? `
+                  <button class="btn-approve" onclick="approveAdmission('${adm.id}')">✓ Approve</button>
+                  <button class="btn-reject" onclick="rejectAdmission('${adm.id}')">✗ Reject</button>
+                ` : ''}
               </div>
-            ` : adm.approvedBy ? `
-              <p style="margin-top:12px;font-size:12px;color:#6B7280;">
-                ${adm.status === 'approved' ? '✓' : '✗'} ${adm.status === 'approved' ? 'Approved' : 'Rejected'} by ${adm.approvedBy} on ${new Date(adm.approvedAt).toLocaleString()}
-              </p>
-            ` : ''}
-          </div>
-        `).join('');
+            </div>
+          `;
+        }).join('');
       }
 
-      // Approve admission
+      function toggleSelection(id, checked) {
+        if (checked) {
+          selectedAdmissions.add(id);
+        } else {
+          selectedAdmissions.delete(id);
+        }
+        updateBulkActions();
+      }
+
+      function updateBulkActions() {
+        const count = selectedAdmissions.size;
+        document.getElementById('bulk-count').textContent = `${count} selected`;
+        document.getElementById('bulk-actions').classList.toggle('show', count > 0);
+      }
+
+      function clearSelection() {
+        selectedAdmissions.clear();
+        filterAdmissions();
+        updateBulkActions();
+      }
+
+      function setView(view) {
+        currentView = view;
+        document.querySelectorAll('.view-toggle button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        // View switching logic can be added here
+      }
+
+      // View details
+      function viewDetails(id) {
+        const adm = allAdmissions.find(a => a.id === id);
+        if (!adm) return;
+
+        document.getElementById('modal-content').innerHTML = `
+          <div style="display: grid; gap: 20px;">
+            <div>
+              <h4 style="margin-bottom: 12px; color: var(--asa-navy);">Application Information</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div><strong>Application ID:</strong><br>${adm.id}</div>
+                <div><strong>Status:</strong><br><span class="status-badge status-${adm.status}">${adm.status.toUpperCase()}</span></div>
+                <div><strong>Source:</strong><br>${adm.source === 'vapi_voice_call' ? '📞 Voice Call' : adm.source === 'vapi_chat' ? '💬 Chat Widget' : '🌐 Web'}</div>
+                <div><strong>Created:</strong><br>${new Date(adm.createdAt).toLocaleString()}</div>
+              </div>
+            </div>
+            <div>
+              <h4 style="margin-bottom: 12px; color: var(--asa-navy);">Student Information</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div><strong>Name:</strong><br>${adm.firstName} ${adm.lastName}</div>
+                <div><strong>Email:</strong><br><a href="mailto:${adm.email}">${adm.email}</a></div>
+                <div><strong>Phone:</strong><br><a href="tel:${adm.phone}">${adm.phone}</a></div>
+                <div><strong>Country:</strong><br>${adm.country || 'N/A'}</div>
+                <div><strong>Education Level:</strong><br>${adm.educationLevel || 'N/A'}</div>
+              </div>
+            </div>
+            <div>
+              <h4 style="margin-bottom: 12px; color: var(--asa-navy);">Programme Details</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div><strong>Programme:</strong><br>${adm.programme}</div>
+                <div><strong>Preferred Intake:</strong><br>${adm.intake}</div>
+              </div>
+            </div>
+            ${adm.notes ? `
+              <div>
+                <h4 style="margin-bottom: 12px; color: var(--asa-navy);">Notes</h4>
+                <p style="padding: 12px; background: #F3F4F6; border-radius: 6px;">${adm.notes}</p>
+              </div>
+            ` : ''}
+            ${adm.approvedBy ? `
+              <div>
+                <h4 style="margin-bottom: 12px; color: var(--asa-navy);">Review History</h4>
+                <p>
+                  ${adm.status === 'approved' ? '✓ Approved' : '✗ Rejected'} by <strong>${adm.approvedBy}</strong><br>
+                  on ${new Date(adm.approvedAt).toLocaleString()}
+                </p>
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        document.getElementById('modal-actions').innerHTML = `
+          <button class="btn-secondary" onclick="closeModal()">Close</button>
+          ${adm.status === 'pending' ? `
+            <button class="btn-approve" onclick="approveAdmission('${adm.id}'); closeModal();">✓ Approve</button>
+            <button class="btn-reject" onclick="rejectAdmission('${adm.id}'); closeModal();">✗ Reject</button>
+          ` : ''}
+        `;
+
+        document.getElementById('detail-modal').classList.add('show');
+      }
+
+      function closeModal() {
+        document.getElementById('detail-modal').classList.remove('show');
+      }
+
+      function openNotesModal(id) {
+        currentNotesAdmission = id;
+        const adm = allAdmissions.find(a => a.id === id);
+        document.getElementById('notes-textarea').value = adm.notes || '';
+        document.getElementById('notes-modal').classList.add('show');
+      }
+
+      function closeNotesModal() {
+        document.getElementById('notes-modal').classList.remove('show');
+        currentNotesAdmission = null;
+      }
+
+      async function saveNotes() {
+        if (!currentNotesAdmission) return;
+        const notes = document.getElementById('notes-textarea').value;
+        
+        try {
+          const response = await fetch(`${API_BASE}/api/admin/admissions/${currentNotesAdmission}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText || response.statusText}`);
+          }
+
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : { success: false, error: 'Empty response' };
+          
+          if (data.success) {
+            showToast('Notes saved successfully!', 'success');
+            closeNotesModal();
+            loadAdmissions();
+          } else {
+            showToast('Error: ' + (data.error || 'Failed to save notes'), 'error');
+          }
+        } catch (error) {
+          showToast('Error: ' + error.message, 'error');
+          console.error('Save notes error:', error);
+        }
+      }
+
+      // Approve/Reject
       async function approveAdmission(id) {
         if (!confirm('Approve this admission application?')) return;
         
@@ -390,19 +973,26 @@
             body: JSON.stringify({ action: 'approve', adminEmail: email })
           });
 
-          const data = await response.json();
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText || response.statusText}`);
+          }
+
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : { success: false, error: 'Empty response' };
+          
           if (data.success) {
-            showToast('Admission approved successfully!');
+            showToast('Admission approved successfully!', 'success');
             loadAdmissions();
           } else {
-            showToast('Error: ' + data.error);
+            showToast('Error: ' + (data.error || 'Failed to approve'), 'error');
           }
         } catch (error) {
-          showToast('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
+          console.error('Approve error:', error);
         }
       }
 
-      // Reject admission
       async function rejectAdmission(id) {
         if (!confirm('Reject this admission application?')) return;
         
@@ -414,27 +1004,147 @@
             body: JSON.stringify({ action: 'reject', adminEmail: email })
           });
 
-          const data = await response.json();
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} ${errorText || response.statusText}`);
+          }
+
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : { success: false, error: 'Empty response' };
+          
           if (data.success) {
-            showToast('Admission rejected.');
+            showToast('Admission rejected.', 'success');
             loadAdmissions();
           } else {
-            showToast('Error: ' + data.error);
+            showToast('Error: ' + (data.error || 'Failed to reject'), 'error');
           }
         } catch (error) {
-          showToast('Error: ' + error.message);
+          showToast('Error: ' + error.message, 'error');
+          console.error('Reject error:', error);
         }
       }
 
-      // Toast notification
-      function showToast(message) {
+      // Bulk actions
+      async function bulkApprove() {
+        if (selectedAdmissions.size === 0) return;
+        if (!confirm(`Approve ${selectedAdmissions.size} selected admission(s)?`)) return;
+
+        const email = document.getElementById('admin-email').value;
+        let success = 0;
+        let failed = 0;
+
+        for (const id of selectedAdmissions) {
+          try {
+            const response = await fetch(`${API_BASE}/api/admin/admissions/${id}/approve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'approve', adminEmail: email })
+            });
+            
+            if (!response.ok) {
+              failed++;
+              continue;
+            }
+
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : { success: false };
+            
+            if (data.success) success++;
+            else failed++;
+          } catch (error) {
+            console.error(`Bulk approve error for ${id}:`, error);
+            failed++;
+          }
+        }
+
+        showToast(`${success} approved, ${failed} failed`, success > 0 ? 'success' : 'error');
+        clearSelection();
+        loadAdmissions();
+      }
+
+      async function bulkReject() {
+        if (selectedAdmissions.size === 0) return;
+        if (!confirm(`Reject ${selectedAdmissions.size} selected admission(s)?`)) return;
+
+        const email = document.getElementById('admin-email').value;
+        let success = 0;
+        let failed = 0;
+
+        for (const id of selectedAdmissions) {
+          try {
+            const response = await fetch(`${API_BASE}/api/admin/admissions/${id}/approve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'reject', adminEmail: email })
+            });
+            
+            if (!response.ok) {
+              failed++;
+              continue;
+            }
+
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : { success: false };
+            
+            if (data.success) success++;
+            else failed++;
+          } catch (error) {
+            console.error(`Bulk reject error for ${id}:`, error);
+            failed++;
+          }
+        }
+
+        showToast(`${success} rejected, ${failed} failed`, success > 0 ? 'success' : 'error');
+        clearSelection();
+        loadAdmissions();
+      }
+
+      // Export
+      function exportData(format) {
+        const data = filteredAdmissions.length > 0 ? filteredAdmissions : allAdmissions;
+        
+        if (format === 'csv') {
+          const headers = ['ID', 'Name', 'Email', 'Phone', 'Programme', 'Intake', 'Country', 'Education', 'Status', 'Source', 'Created'];
+          const rows = data.map(adm => [
+            adm.id,
+            `"${adm.firstName} ${adm.lastName}"`,
+            adm.email,
+            adm.phone,
+            `"${adm.programme}"`,
+            adm.intake,
+            adm.country || '',
+            adm.educationLevel || '',
+            adm.status,
+            adm.source || '',
+            new Date(adm.createdAt).toLocaleString()
+          ]);
+          
+          const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+          downloadFile(csv, `admissions_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+        } else {
+          downloadFile(JSON.stringify(data, null, 2), `admissions_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        }
+      }
+
+      function downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Export started!', 'success');
+      }
+
+      // Toast
+      function showToast(message, type = '') {
         const toast = document.getElementById('toast');
         toast.textContent = message;
+        toast.className = 'toast ' + type;
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
       }
     </script>
   </body>
 </html>
-
-

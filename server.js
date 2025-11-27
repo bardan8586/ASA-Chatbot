@@ -115,31 +115,52 @@ async function getAdmission(id) {
 
 // Main webhook endpoint for VAPI events
 app.post('/api/vapi/webhook', async (req, res) => {
-  console.log('📞 VAPI Webhook received:', req.body);
+  console.log('📞 VAPI Webhook received:', JSON.stringify(req.body, null, 2));
   
-  const { event, call, message, functionCall } = req.body;
+  const { message, call, assistant } = req.body;
+  const messageType = message?.type;
   
   try {
-    // Handle different VAPI events
-    switch (event) {
-      case 'function-call':
-        return await handleFunctionCall(functionCall, call, res);
+    // Handle different VAPI message types
+    if (messageType === 'tool-calls' || messageType === 'function-call') {
+      // VAPI sends tool calls in message.toolCalls array
+      const toolCalls = message.toolCalls || message.tool_calls || message.toolCallsResult || [];
       
-      case 'status-update':
-        console.log(`Call ${call?.id} status: ${call?.status}`);
-        return res.json({ success: true });
+      console.log('🔧 Tool calls found:', JSON.stringify(toolCalls, null, 2));
       
-      case 'transcript':
-        console.log(`Transcript: ${message?.content}`);
+      if (toolCalls.length > 0) {
+        // Handle all tool calls (VAPI may send multiple)
+        const results = [];
+        for (const toolCall of toolCalls) {
+          console.log('🔧 Processing tool call:', JSON.stringify(toolCall, null, 2));
+          // For multiple tool calls, we need to handle them differently
+          // But typically VAPI sends one at a time, so we'll handle the first one
+          const result = await handleFunctionCallSync(toolCall, call);
+          results.push(result);
+        }
+        
+        // Return results in VAPI format
+        return res.json({ results: results });
+      } else {
+        console.log('⚠️ Tool calls array is empty. Full message:', JSON.stringify(message, null, 2));
         return res.json({ success: true });
-      
-      case 'hang':
-        console.log(`Call ${call?.id} ended`);
-        return res.json({ success: true });
-      
-      default:
-        console.log(`Unhandled event: ${event}`);
-        return res.json({ success: true });
+      }
+    } else if (messageType === 'status-update') {
+      console.log(`Call ${call?.id} status: ${call?.status}`);
+      return res.json({ success: true });
+    } else if (messageType === 'transcript') {
+      console.log(`Transcript: ${message?.content || message?.transcript}`);
+      return res.json({ success: true });
+    } else if (messageType === 'hang') {
+      console.log(`Call ${call?.id} ended`);
+      return res.json({ success: true });
+    } else if (messageType === 'speech-update' || messageType === 'conversation-update') {
+      // These are just updates, acknowledge them
+      return res.json({ success: true });
+    } else {
+      console.log(`ℹ️ Unhandled message type: ${messageType}`);
+      // Always return success to acknowledge receipt
+      return res.json({ success: true });
     }
   } catch (error) {
     console.error('Webhook error:', error);
@@ -147,16 +168,43 @@ app.post('/api/vapi/webhook', async (req, res) => {
   }
 });
 
-// Handle VAPI function calls
-async function handleFunctionCall(functionCall, call, res) {
-  const { name, parameters } = functionCall;
+const FUNCTION_NAME_ALIASES = {
+  create_admission: 'createAdmissionApplication',
+  check_admission_status: 'checkAdmissionStatus',
+  get_course_info: 'getCourseInformation',
+  schedule_appointment: 'scheduleAppointment'
+};
+
+function resolveFunctionName(name = '') {
+  return FUNCTION_NAME_ALIASES[name] || name;
+}
+
+// Handle VAPI function calls (sync version for multiple calls)
+async function handleFunctionCallSync(toolCall, call) {
+  // VAPI sends function calls in different formats
+  const rawFunctionName = toolCall.function?.name || toolCall.name;
+  const functionName = resolveFunctionName(rawFunctionName);
+  const toolCallId = toolCall.id || toolCall.toolCallId;
   
-  console.log(`🔧 Function call: ${name}`, parameters);
+  // Handle arguments - can be object or JSON string
+  let parameters = {};
+  if (toolCall.function?.arguments) {
+    if (typeof toolCall.function.arguments === 'string') {
+      parameters = JSON.parse(toolCall.function.arguments);
+    } else {
+      parameters = toolCall.function.arguments; // Already an object
+    }
+  } else {
+    parameters = toolCall.parameters || toolCall.arguments || {};
+  }
+  
+  console.log(`🔧 Function call: ${functionName}`, parameters);
+  console.log(`🔧 Tool Call ID: ${toolCallId}`);
   
   try {
     let result;
     
-    switch (name) {
+    switch (functionName) {
       case 'createAdmissionApplication':
         result = await createAdmissionApplication(parameters);
         break;
@@ -174,16 +222,81 @@ async function handleFunctionCall(functionCall, call, res) {
         break;
       
       default:
-        result = { error: `Unknown function: ${name}` };
+        console.log(`⚠️ Unknown function: ${functionName}`);
+        result = { error: `Unknown function: ${functionName}` };
     }
     
-    return res.json({
+    return {
+      toolCallId: toolCallId,
       result: result
-    });
+    };
   } catch (error) {
-    console.error(`Error handling function ${name}:`, error);
-    return res.json({
+    console.error(`❌ Error handling function ${functionName}:`, error);
+    return {
+      toolCallId: toolCallId,
       result: { error: error.message }
+    };
+  }
+}
+
+// Handle VAPI function calls (legacy - for single call)
+async function handleFunctionCall(toolCall, call, res) {
+  // VAPI sends function calls in different formats
+  const rawFunctionName = toolCall.function?.name || toolCall.name;
+  const functionName = resolveFunctionName(rawFunctionName);
+  const toolCallId = toolCall.id || toolCall.toolCallId;
+  const parameters = toolCall.function?.arguments ? JSON.parse(toolCall.function.arguments) : (toolCall.parameters || toolCall.arguments || {});
+  
+  console.log(`🔧 Function call: ${functionName}`, parameters);
+  console.log(`🔧 Tool Call ID: ${toolCallId}`);
+  
+  try {
+    let result;
+    
+    switch (functionName) {
+      case 'createAdmissionApplication':
+        result = await createAdmissionApplication(parameters);
+        break;
+      
+      case 'checkAdmissionStatus':
+        result = await checkAdmissionStatus(parameters);
+        break;
+      
+      case 'getCourseInformation':
+        result = await getCourseInformation(parameters);
+        break;
+      
+      case 'scheduleAppointment':
+        result = await scheduleAppointment(parameters);
+        break;
+      
+      default:
+        console.log(`⚠️ Unknown function: ${functionName}`);
+        result = { error: `Unknown function: ${functionName}` };
+    }
+    
+    // VAPI expects the response in this specific format:
+    // { "results": [{ "toolCallId": "...", "result": {...} }] }
+    const response = {
+      results: [
+        {
+          toolCallId: toolCallId,
+          result: result
+        }
+      ]
+    };
+    
+    console.log(`✅ Returning result for ${functionName}:`, JSON.stringify(response, null, 2));
+    return res.json(response);
+  } catch (error) {
+    console.error(`❌ Error handling function ${functionName}:`, error);
+    return res.json({
+      results: [
+        {
+          toolCallId: toolCallId,
+          result: { error: error.message }
+        }
+      ]
     });
   }
 }
@@ -393,6 +506,30 @@ app.post('/api/admin/admissions/:id/approve', async (req, res) => {
   }
 });
 
+// Update admission notes (admin only)
+app.post('/api/admin/admissions/:id/notes', async (req, res) => {
+  const { id } = req.params;
+  const { notes } = req.body;
+  
+  try {
+    const admission = await updateAdmission(id, {
+      notes: notes || ''
+    });
+    
+    if (!admission) {
+      return res.status(404).json({ error: 'Admission not found' });
+    }
+    
+    return res.json({
+      success: true,
+      admission,
+      message: 'Notes updated successfully'
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== PUBLIC API ====================
 
 // Health check
@@ -414,7 +551,7 @@ app.get('/api/vapi/config', (req, res) => {
 
 // Initiate a VAPI call (for testing)
 app.post('/api/vapi/call', async (req, res) => {
-  const { phoneNumber } = req.body;
+  const { phoneNumber, notes } = req.body;
   
   console.log('📞 Call request received for:', phoneNumber);
   
@@ -430,7 +567,8 @@ app.post('/api/vapi/call', async (req, res) => {
       customer: {
         number: phoneNumber
       },
-      assistantId: process.env.VAPI_ASSISTANT_ID
+      assistantId: process.env.VAPI_ASSISTANT_ID,
+      ...(notes ? { metadata: { notes } } : {})
     };
     
     // Only add phoneNumberId if it's set, not empty, and looks like a UUID
